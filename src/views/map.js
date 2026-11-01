@@ -1,4 +1,4 @@
-// 지도: Leaflet + 장소 목록 + 구글 지도 연동
+// 지도: Leaflet(OSM) 또는 구글 지도(API 키 입력 시) + 장소 목록 + 구글 지도 연동
 import { updateTrip } from '../store.js';
 import { esc, fmtDate, gmapsPlaceUrl, gmapsRouteUrl, download, PLACE_CATEGORIES } from '../util.js';
 import { placeForm, stopForm, wikiBulkForm } from '../forms.js';
@@ -6,16 +6,22 @@ import { imgUrl } from '../images.js';
 import { tripToKML, placesToCSV } from '../export.js';
 import { toast } from '../ui.js';
 
-let map, layer, meMarker, markers = new Map();
-let state = { tripId: null, filter: 'all', selected: null, q: '' };
+export const GMAPS_KEY = 'trip-atlas:gmaps-key';
+export const getGmapsKey = () => (localStorage.getItem(GMAPS_KEY) || '').trim();
+const CAT_COLOR = { food: '#c43c1f', cafe: '#a3700a', sight: '#1f6f78', shop: '#6b4fc2', stay: '#2d6b3c', transit: '#4a5568', other: '#8a8375' };
+const isDark = () => document.documentElement.dataset.theme === 'dark' || (!document.documentElement.dataset.theme && matchMedia('(prefers-color-scheme: dark)').matches);
+
+let eng = null;               // 현재 지도 엔진 (아래 makeLeaflet / makeGoogle)
+let state = { tripId: null, engine: '', filter: 'all', selected: null, q: '' };
 
 export function renderMap(root, trip, route) {
-  const fresh = !root.querySelector('#map') || state.tripId !== trip.id;
+  const wanted = getGmapsKey() ? 'google' : 'osm';
+  const fresh = !root.querySelector('#map') || state.tripId !== trip.id || state.engine !== wanted;
   if (fresh) {
-    state = { tripId: trip.id, filter: route.sub && trip.days.some(d => d.date === route.sub) ? route.sub : 'all', selected: null, q: '' };
+    state = { tripId: trip.id, engine: wanted, filter: route.sub && trip.days.some(d => d.date === route.sub) ? route.sub : 'all', selected: null, q: '' };
     root.innerHTML = `
       <div class="map-layout">
-        <div class="map-wrap"><div id="map" role="application" aria-label="여행 지도"></div>
+        <div class="map-wrap${wanted === 'google' ? ' gmap' : ''}"><div id="map" role="application" aria-label="여행 지도"></div>
           <div class="map-toolbar"><div class="seg" id="day-seg"></div><button class="btn sm" id="me-btn" title="현재 위치">◉ 내 위치</button></div>
         </div>
         <aside class="map-side">
@@ -25,13 +31,12 @@ export function renderMap(root, trip, route) {
             <div class="row"><button class="btn sm ghost" id="ex-kml" title="구글 내 지도(My Maps)에 가져올 수 있는 파일">KML 내보내기</button><button class="btn sm ghost" id="ex-csv">CSV</button><button class="btn sm ghost" id="wk-bulk" title="사진이 없는 장소의 대표 사진을 위키백과에서 찾습니다">사진 찾기</button></div>
           </div>
           <div class="ms-list" id="ms-list"></div>
-          <div class="gm-help"><strong>구글 지도에서 전부 보려면</strong> KML을 내보낸 뒤 <a href="https://www.google.com/maps/d/" target="_blank" rel="noopener">google.com/maps/d</a> → 새 지도 → 가져오기. 구글 지도 앱의 "저장됨 › 지도"에 날짜별 레이어로 나타납니다.</div>
+          <div class="gm-help">${wanted === 'google' ? '<strong>구글 지도</strong>로 표시 중 (키는 백업·설정에서 변경). ' : ''}<strong>구글 지도 앱에서 전부 보려면</strong> KML을 내보낸 뒤 <a href="https://www.google.com/maps/d/" target="_blank" rel="noopener">google.com/maps/d</a> → 새 지도 → 가져오기. 앱의 "저장됨 › 지도"에 날짜별 레이어로 나타납니다.</div>
         </aside>
       </div>`;
-    if (map) { map.remove(); map = null; }
-    map = L.map(root.querySelector('#map'), { zoomControl: true, attributionControl: true });
-    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' }).addTo(map);
-    layer = L.layerGroup().addTo(map);
+    if (eng) { eng.destroy(); eng = null; }
+    const el = root.querySelector('#map');
+    cur = { root, trip, el };
     root.querySelector('#add-place').onclick = () => placeForm(trip, null, { onSave: p => { state.selected = p.id; } });
     root.querySelector('#ms-q').addEventListener('input', e => { state.q = e.target.value.trim().toLowerCase(); drawList(root, trip); });
     root.querySelector('#ex-kml').onclick = () => { download(`${trip.title}.kml`, tripToKML(trip), 'application/vnd.google-earth.kml+xml'); toast('KML을 내려받았습니다. 구글 내 지도에서 가져오세요.'); };
@@ -39,9 +44,29 @@ export function renderMap(root, trip, route) {
     root.querySelector('#me-btn').onclick = () => locateMe();
     root.querySelector('#wk-bulk').onclick = () => wikiBulkForm(trip);
     root.querySelector('#day-seg').onclick = e => { const b = e.target.closest('button'); if (!b) return; state.filter = b.dataset.f; state.selected = null; draw(root, trip, true); };
+    drawList(root, trip);
+    if (wanted === 'google') {
+      el.innerHTML = '<div class="map-loading">구글 지도를 불러오는 중…</div>';
+      loadGoogle(getGmapsKey()).then(() => { if (state.engine !== 'google' || !el.isConnected) return; eng = makeGoogle(el); draw(root, trip, true); })
+        .catch(err => fallbackToOSM(err.message));
+      return;
+    }
+    eng = makeLeaflet(el);
   }
+  if (!eng) return; // 구글 지도 로딩 중
   draw(root, trip, fresh);
-  setTimeout(() => map && map.invalidateSize(), 50);
+  setTimeout(() => eng && eng.resize(), 50);
+}
+
+// 구글 키가 거부되면(gm_authFailure) 같은 자리에 OSM을 다시 그린다
+let cur = null;
+function fallbackToOSM(reason) {
+  if (!cur || !cur.el.isConnected) return;
+  toast(reason + ' — OpenStreetMap으로 표시합니다.', { err: true, ms: 6000 });
+  if (eng) { eng.destroy(); eng = null; }
+  cur.root.querySelector('.map-wrap')?.classList.remove('gmap');
+  cur.el.innerHTML = '';
+  eng = makeLeaflet(cur.el); draw(cur.root, cur.trip, true);
 }
 
 function visibleStops(trip) {
@@ -53,7 +78,7 @@ function visibleStops(trip) {
 function draw(root, trip, fit) {
   const seg = root.querySelector('#day-seg');
   seg.innerHTML = `<button data-f="all" class="${state.filter === 'all' ? 'on' : ''}">전체</button>` + trip.days.map((d, i) => `<button data-f="${d.date}" class="${state.filter === d.date ? 'on' : ''}" title="${fmtDate(d.date)}">D${i + 1}</button>`).join('');
-  layer.clearLayers(); markers.clear();
+  eng.clear();
 
   const stops = visibleStops(trip);
   const order = new Map(); // placeId -> label
@@ -63,27 +88,17 @@ function draw(root, trip, fit) {
   const pts = [];
   const list = trip.places.filter(p => p.lat != null && (!stops || order.has(p.id)));
   list.forEach(p => {
-    const label = order.get(p.id) || (PLACE_CATEGORIES[p.category]?.icon || '•');
-    const icon = L.divIcon({ className: '', html: `<div class="pin p-${p.category}${stops === null && !order.has(p.id) ? ' dim' : ''}${state.selected === p.id ? ' sel' : ''}"><span>${esc(label)}</span></div>`, iconSize: [30, 30], iconAnchor: [15, 30], popupAnchor: [0, -30] });
-    const m = L.marker([p.lat, p.lng], { icon, title: p.name }).addTo(layer);
-    m.bindPopup(popupHtml(trip, p), { maxWidth: 280 });
-    m.on('click', () => { state.selected = p.id; highlight(root); });
-    markers.set(p.id, m);
+    const label = order.get(p.id) || '•';
+    eng.marker(p, { label, dim: stops === null && !order.has(p.id), sel: state.selected === p.id, popup: () => popupHtml(trip, p), onClick: () => { state.selected = p.id; highlight(root); } });
     pts.push([p.lat, p.lng]);
   });
-  // 일자별 경로선
   if (stops) {
     const line = stops.map(s => trip.places.find(p => p.id === s.placeId)).filter(p => p && p.lat != null).map(p => [p.lat, p.lng]);
-    if (line.length > 1) L.polyline(line, { color: '#e0552d', weight: 3, opacity: .75, dashArray: '2 8', lineCap: 'round' }).addTo(layer);
+    if (line.length > 1) eng.line(line);
   }
-  if (fit) {
-    if (pts.length) map.fitBounds(L.latLngBounds(pts).pad(0.18), { maxZoom: 15 });
-    else map.setView([35.0, 138.4], 10);
-  }
+  if (fit) { if (pts.length) eng.fit(pts); else eng.setView([35.0, 138.4], 10); }
   drawList(root, trip);
-  // 팝업 안의 버튼 위임
-  map.off('popupopen'); map.on('popupopen', e => {
-    const el = e.popup.getElement();
+  eng.onPopup(el => {
     el.querySelectorAll('[data-edit]').forEach(b => b.onclick = () => placeForm(trip, trip.places.find(p => p.id === b.dataset.edit)));
     el.querySelectorAll('[data-add]').forEach(b => b.onclick = () => stopForm(trip, trip.days[0]?.date, { placeId: b.dataset.add }));
   });
@@ -93,10 +108,10 @@ function popupHtml(trip, p) {
   const uses = [];
   trip.days.forEach((d, di) => d.stops.forEach((s, si) => { if (s.placeId === p.id) uses.push(`D${di + 1}-${si + 1}${s.time ? ' ' + s.time : ''}`); }));
   const img = imgUrl(p.photo, 'thumb');
-  return `${img ? `<img class="pp-img" src="${esc(img)}" alt="">` : ''}<strong>${esc(p.name)}</strong>${p.localName ? `<br><span style="color:var(--muted)">${esc(p.localName)}</span>` : ''}
+  return `<div class="pp">${img ? `<img class="pp-img" src="${esc(img)}" alt="">` : ''}<strong>${esc(p.name)}</strong>${p.localName ? `<br><span style="color:var(--muted)">${esc(p.localName)}</span>` : ''}
     ${p.memo ? `<div style="margin-top:4px">${esc(p.memo)}</div>` : ''}${p.hours ? `<div class="small" style="color:var(--muted)">⏱ ${esc(p.hours)}</div>` : ''}
-    ${uses.length ? `<div class="small" style="margin-top:4px;color:var(--sea)">일정: ${uses.join(', ')}</div>` : ''}
-    <div class="pp-acts"><a href="${esc(gmapsPlaceUrl(p))}" target="_blank" rel="noopener">구글 지도 ↗</a><a class="sec" href="https://www.google.com/maps/dir/?api=1&destination=${p.lat},${p.lng}&travelmode=transit" target="_blank" rel="noopener">길찾기</a><a class="sec" href="javascript:void 0" data-add="${p.id}">일정에 추가</a><a class="sec" href="javascript:void 0" data-edit="${p.id}">수정</a></div>`;
+    ${uses.length ? `<div class="small" style="margin-top:4px;color:var(--ink-2)">일정: ${uses.join(', ')}</div>` : ''}
+    <div class="pp-acts"><a href="${esc(gmapsPlaceUrl(p))}" target="_blank" rel="noopener">구글 지도 ↗</a><a class="sec" href="https://www.google.com/maps/dir/?api=1&destination=${p.lat},${p.lng}&travelmode=transit" target="_blank" rel="noopener">길찾기</a><a class="sec" href="javascript:void 0" data-add="${p.id}">일정에 추가</a><a class="sec" href="javascript:void 0" data-edit="${p.id}">수정</a></div></div>`;
 }
 
 function drawList(root, trip) {
@@ -133,23 +148,107 @@ function drawList(root, trip) {
     if (e.target.closest('[data-edit]')) { placeForm(trip, p); return; }
     if (e.target.closest('a')) return;
     state.selected = p.id; highlight(root);
-    const m = markers.get(p.id);
-    if (m) { map.flyTo(m.getLatLng(), Math.max(map.getZoom(), 15), { duration: .6 }); m.openPopup(); }
+    if (eng && eng.has(p.id)) eng.focus(p.id);
     else toast('좌표가 없어 지도에 표시할 수 없습니다. ✎ 로 좌표를 넣어 주세요.', { err: true });
   };
 }
 
 function highlight(root) {
   root.querySelectorAll('.place-row').forEach(r => r.classList.toggle('active', r.dataset.id === state.selected));
-  markers.forEach((m, id) => { const el = m.getElement()?.querySelector('.pin'); el && el.classList.toggle('sel', id === state.selected); });
+  eng && eng.select(state.selected);
 }
 
 function locateMe() {
   if (!navigator.geolocation) { toast('위치 정보를 지원하지 않는 브라우저입니다', { err: true }); return; }
-  navigator.geolocation.getCurrentPosition(pos => {
-    const ll = [pos.coords.latitude, pos.coords.longitude];
-    if (meMarker) meMarker.remove();
-    meMarker = L.marker(ll, { icon: L.divIcon({ className: '', html: '<div class="me-dot"></div>', iconSize: [16, 16], iconAnchor: [8, 8] }), zIndexOffset: 1000 }).addTo(map).bindPopup('현재 위치');
-    map.flyTo(ll, 15);
-  }, () => toast('위치를 가져오지 못했습니다', { err: true }), { enableHighAccuracy: true, timeout: 8000 });
+  navigator.geolocation.getCurrentPosition(pos => { eng && eng.me([pos.coords.latitude, pos.coords.longitude]); },
+    () => toast('위치를 가져오지 못했습니다', { err: true }), { enableHighAccuracy: true, timeout: 8000 });
+}
+
+// ---------- 엔진 1: Leaflet + OpenStreetMap ----------
+function makeLeaflet(el) {
+  const map = L.map(el, { zoomControl: true, attributionControl: true });
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' }).addTo(map);
+  const layer = L.layerGroup().addTo(map);
+  const markers = new Map(); let meMarker, popupFn = null;
+  map.on('popupopen', e => popupFn && popupFn(e.popup.getElement()));
+  return {
+    clear() { layer.clearLayers(); markers.clear(); },
+    marker(p, { label, dim, sel, popup, onClick }) {
+      const icon = L.divIcon({ className: '', html: `<div class="pin p-${p.category}${dim ? ' dim' : ''}${sel ? ' sel' : ''}"><span>${esc(label)}</span></div>`, iconSize: [30, 30], iconAnchor: [15, 30], popupAnchor: [0, -30] });
+      const m = L.marker([p.lat, p.lng], { icon, title: p.name }).addTo(layer);
+      m.bindPopup(popup, { maxWidth: 280 });
+      m.on('click', onClick);
+      markers.set(p.id, m);
+    },
+    line(pts) { L.polyline(pts, { color: '#e0552d', weight: 3, opacity: .75, dashArray: '2 8', lineCap: 'round' }).addTo(layer); },
+    fit(pts) { map.fitBounds(L.latLngBounds(pts).pad(0.18), { maxZoom: 15 }); },
+    setView(ll, z) { map.setView(ll, z); },
+    has: id => markers.has(id),
+    focus(id) { const m = markers.get(id); map.flyTo(m.getLatLng(), Math.max(map.getZoom(), 15), { duration: .6 }); m.openPopup(); },
+    select(id) { markers.forEach((m, k) => { const d = m.getElement()?.querySelector('.pin'); d && d.classList.toggle('sel', k === id); }); },
+    me(ll) { if (meMarker) meMarker.remove(); meMarker = L.marker(ll, { icon: L.divIcon({ className: '', html: '<div class="me-dot"></div>', iconSize: [16, 16], iconAnchor: [8, 8] }), zIndexOffset: 1000 }).addTo(map).bindPopup('현재 위치'); map.flyTo(ll, 15); },
+    onPopup(fn) { popupFn = fn; },
+    resize() { map.invalidateSize(); },
+    destroy() { map.remove(); },
+  };
+}
+
+// ---------- 엔진 2: Google Maps JavaScript API ----------
+let gLoading = null;
+function loadGoogle(key) {
+  if (window.google?.maps?.Map) return Promise.resolve();
+  if (gLoading) return gLoading;
+  gLoading = new Promise((resolve, reject) => {
+    const cb = '__tripAtlasGmaps';
+    window[cb] = () => { delete window[cb]; resolve(); };
+    window.gm_authFailure = () => fallbackToOSM('구글 지도 API 키가 거부되었습니다 (키·리퍼러 제한·결제 설정 확인)');
+    const s = document.createElement('script');
+    s.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(key)}&v=weekly&language=ko&region=KR&loading=async&callback=${cb}`;
+    s.async = true;
+    s.onerror = () => { gLoading = null; s.remove(); reject(new Error('구글 지도 스크립트를 불러오지 못했습니다')); };
+    document.head.appendChild(s);
+    setTimeout(() => { if (!window.google?.maps?.Map) { gLoading = null; reject(new Error('구글 지도 로딩 시간이 초과됐습니다')); } }, 15000);
+  });
+  return gLoading;
+}
+
+const DARK_STYLE = [
+  { elementType: 'geometry', stylers: [{ color: '#1d1f21' }] }, { elementType: 'labels.text.fill', stylers: [{ color: '#9a9890' }] }, { elementType: 'labels.text.stroke', stylers: [{ color: '#1d1f21' }] },
+  { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#2c2f33' }] }, { featureType: 'road', elementType: 'geometry.stroke', stylers: [{ color: '#1d1f21' }] },
+  { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#111b26' }] }, { featureType: 'poi', elementType: 'geometry', stylers: [{ color: '#23262a' }] },
+  { featureType: 'poi.park', elementType: 'geometry', stylers: [{ color: '#1f2b22' }] }, { featureType: 'transit', elementType: 'geometry', stylers: [{ color: '#2a2d31' }] },
+];
+
+function pinIcon(color, label, sel) {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="30" height="38" viewBox="0 0 30 38"><path d="M15 37C15 37 3 22 3 14A12 12 0 0 1 27 14C27 22 15 37 15 37Z" fill="${color}" stroke="${sel ? '#141414' : '#ffffff'}" stroke-width="${sel ? 3 : 2}"/><text x="15" y="17.5" text-anchor="middle" font-family="JetBrains Mono,Menlo,monospace" font-size="${String(label).length > 2 ? 8 : 10}" font-weight="700" fill="#fff">${esc(String(label))}</text></svg>`;
+  return { url: 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg), scaledSize: new google.maps.Size(30, 38), anchor: new google.maps.Point(15, 37) };
+}
+
+function makeGoogle(el) {
+  el.innerHTML = '';
+  const g = google.maps;
+  const map = new g.Map(el, { center: { lat: 35, lng: 138.4 }, zoom: 10, mapTypeControl: false, streetViewControl: false, fullscreenControl: true, clickableIcons: false, gestureHandling: 'greedy', styles: isDark() ? DARK_STYLE : [] });
+  const iw = new g.InfoWindow({ maxWidth: 300 });
+  const markers = new Map(); let shapes = [], meMarker, popupFn = null;
+  iw.addListener('domready', () => { const c = document.querySelector('.gm-style-iw .pp'); if (c && popupFn) popupFn(c); });
+  const toLL = ll => ({ lat: ll[0], lng: ll[1] });
+  return {
+    clear() { markers.forEach(m => m.setMap(null)); markers.clear(); shapes.forEach(s => s.setMap(null)); shapes = []; iw.close(); },
+    marker(p, { label, dim, sel, popup, onClick }) {
+      const m = new g.Marker({ map, position: { lat: p.lat, lng: p.lng }, title: p.name, icon: pinIcon(CAT_COLOR[p.category] || CAT_COLOR.other, label, sel), opacity: dim ? .35 : 1, zIndex: sel ? 10 : 1 });
+      m._meta = { color: CAT_COLOR[p.category] || CAT_COLOR.other, label };
+      m.addListener('click', () => { iw.setContent(popup()); iw.open({ map, anchor: m }); onClick(); });
+      markers.set(p.id, m);
+    },
+    line(pts) { shapes.push(new g.Polyline({ map, path: pts.map(toLL), strokeOpacity: 0, icons: [{ icon: { path: 'M 0,-1 0,1', strokeOpacity: .8, strokeColor: '#e0552d', scale: 3 }, offset: '0', repeat: '14px' }] })); },
+    fit(pts) { const b = new g.LatLngBounds(); pts.forEach(ll => b.extend(toLL(ll))); map.fitBounds(b, 40); g.event.addListenerOnce(map, 'idle', () => { if (map.getZoom() > 15) map.setZoom(15); }); },
+    setView(ll, z) { map.setCenter(toLL(ll)); map.setZoom(z); },
+    has: id => markers.has(id),
+    focus(id) { const m = markers.get(id); map.panTo(m.getPosition()); if (map.getZoom() < 15) map.setZoom(15); g.event.trigger(m, 'click'); },
+    select(id) { markers.forEach((m, k) => { m.setIcon(pinIcon(m._meta.color, m._meta.label, k === id)); m.setZIndex(k === id ? 10 : 1); }); },
+    me(ll) { if (meMarker) meMarker.setMap(null); meMarker = new g.Marker({ map, position: toLL(ll), title: '현재 위치', icon: { path: g.SymbolPath.CIRCLE, scale: 8, fillColor: '#2a78d6', fillOpacity: 1, strokeColor: '#fff', strokeWeight: 3 }, zIndex: 1000 }); map.panTo(toLL(ll)); map.setZoom(15); },
+    onPopup(fn) { popupFn = fn; },
+    resize() { g.event.trigger(map, 'resize'); },
+    destroy() { markers.forEach(m => m.setMap(null)); shapes.forEach(s => s.setMap(null)); el.innerHTML = ''; },
+  };
 }

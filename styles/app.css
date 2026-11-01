@@ -284,6 +284,15 @@ input[type="checkbox"].chk { width: 15px; height: 15px; accent-color: var(--ink)
 .place-row .pa a:hover, .place-row .pa button:hover { color: var(--ink); text-decoration: none; }
 .map-toolbar { position: absolute; z-index: 500; left: 52px; top: 10px; display: flex; gap: 6px; flex-wrap: wrap; max-width: calc(100% - 62px); }
 .map-toolbar .seg, .map-toolbar .btn { background: var(--bg); }
+.map-wrap.gmap .map-toolbar { left: 10px; }
+.map-loading { position: absolute; inset: 0; display: grid; place-items: center; color: var(--muted); font-size: 13px; }
+.gm-style .gm-style-iw-c { border-radius: var(--r) !important; padding: 10px 12px !important; background: var(--bg) !important; color: var(--ink); font-family: var(--sans); font-size: 12.5px; line-height: 1.5; }
+.gm-style .gm-style-iw-d { overflow: auto !important; }
+.gm-style .gm-style-iw-tc::after { background: var(--bg) !important; }
+.gm-style .pp strong { font-size: 13.5px; }
+.gm-style .pp .pp-acts { display: flex; gap: 10px; margin-top: 6px; flex-wrap: wrap; }
+.gm-style .pp .pp-acts a { font-size: 12px; font-weight: 500; text-decoration: underline; text-underline-offset: 3px; color: var(--ink); }
+.gm-style .pp .pp-img { width: calc(100% + 24px); max-height: 140px; object-fit: cover; display: block; margin: -10px -12px 8px; }
 .pin { width: 26px; height: 26px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); background: var(--ink); border: 2px solid #fff; box-shadow: 0 1px 3px rgba(0,0,0,.4); display: grid; place-items: center; }
 .pin span { transform: rotate(45deg); color: #fff; font-family: var(--mono); font-size: 10px; font-weight: 700; }
 .pin.p-food { background: #c43c1f; } .pin.p-cafe { background: #a3700a; } .pin.p-sight { background: #1f6f78; } .pin.p-shop { background: #6b4fc2; } .pin.p-stay { background: #2d6b3c; } .pin.p-transit { background: #4a5568; } .pin.p-other { background: #8a8375; }

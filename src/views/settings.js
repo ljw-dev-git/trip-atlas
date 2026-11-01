@@ -1,6 +1,7 @@
 // 백업·복원·설정
 import { getState, exportJSON, exportBundle, importJSON, importSeed, resetAll } from '../store.js';
 import { imageCount, imageBytes } from '../images.js';
+import { GMAPS_KEY, getGmapsKey } from './map.js';
 import { esc, download, todayISO } from '../util.js';
 import { toast, confirmDialog } from '../ui.js';
 
@@ -17,6 +18,15 @@ export function renderSettings(root) {
       <div class="card"><div class="card-title"><h3>예시 여행</h3></div>
         <p>시즈오카 2026 예시 여행(장소 48곳, 2박 3일 일정, 예상 지출)을 다시 불러옵니다. 이미 있으면 그대로 둡니다.</p>
         <button class="btn" id="seed-btn">시즈오카 예시 불러오기</button>
+      </div>
+      <div class="card"><div class="card-title"><h3>구글 지도</h3><span class="chip">${getGmapsKey() ? '사용 중' : 'OpenStreetMap 사용 중'}</span></div>
+        <p>Google Maps JavaScript API 키를 넣으면 지도 탭이 구글 지도로 바뀝니다. 키는 이 브라우저에만 저장되고 백업 JSON에는 들어가지 않습니다. 비우면 다시 OpenStreetMap을 씁니다.</p>
+        <div class="row" style="flex-wrap:nowrap"><input class="input" id="gm-key" type="password" autocomplete="off" spellcheck="false" placeholder="AIza… (API 키)" value="${esc(getGmapsKey())}"><button class="btn primary" id="gm-save">저장</button><button class="btn ghost" id="gm-show" type="button" title="키 보기/숨기기">👁</button></div>
+        <ul class="small" style="margin:10px 0 0;padding-left:18px;line-height:1.8;color:var(--ink-2)">
+          <li><a href="https://console.cloud.google.com/apis/library/maps-backend.googleapis.com" target="_blank" rel="noopener">Maps JavaScript API 사용 설정</a> → <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener">사용자 인증 정보</a>에서 API 키 만들기</li>
+          <li>키 제한: 애플리케이션 제한 "웹사이트"에 <code>https://ljw-dev-git.github.io/*</code>, API 제한은 Maps JavaScript API만</li>
+          <li>결제 계정 연결이 필요합니다(개인 사용량은 무료 한도 안). 온보딩 마법사가 반복되면 위 링크로 직접 들어가세요.</li>
+        </ul>
       </div>
       <div class="card"><div class="card-title"><h3>테마</h3></div>
         <p>오른쪽 위 ☀/☾ 버튼으로 라이트·다크를 전환합니다. 시스템 설정을 따르려면 아래를 누르세요.</p>
@@ -41,6 +51,8 @@ export function renderSettings(root) {
   const readFile = (input, cb) => input.addEventListener('change', () => { const f = input.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => { Promise.resolve().then(() => cb(r.result)).catch(e => toast('파일을 읽지 못했습니다: ' + e.message, { err: true })); }; r.readAsText(f); input.value = ''; });
   readFile(root.querySelector('#bk-import'), async text => { const n = await importJSON(text, { merge: true }); toast(`${n}개 여행을 병합했습니다`); });
   readFile(root.querySelector('#bk-replace'), async text => { if (await confirmDialog('현재 데이터를 모두 지우고 파일 내용으로 교체합니다.', { ok: '교체' })) { await importJSON(text, { merge: false }); toast('교체했습니다'); } });
+  root.querySelector('#gm-save').onclick = () => { const v = root.querySelector('#gm-key').value.trim(); if (v && !/^AIza[0-9A-Za-z_-]{20,}$/.test(v)) { toast('구글 API 키 형식이 아닙니다 (AIza로 시작)', { err: true }); return; } if (v) localStorage.setItem(GMAPS_KEY, v); else localStorage.removeItem(GMAPS_KEY); toast(v ? '구글 지도 키를 저장했습니다. 지도 탭에서 확인하세요.' : '키를 지웠습니다. OpenStreetMap을 사용합니다.'); renderSettings(root); };
+  root.querySelector('#gm-show').onclick = () => { const i = root.querySelector('#gm-key'); i.type = i.type === 'password' ? 'text' : 'password'; };
   root.querySelector('#seed-btn').onclick = () => { const t = importSeed(); toast('예시 여행을 불러왔습니다'); location.hash = `#/trip/${t.id}`; };
   root.querySelector('#theme-auto').onclick = () => { localStorage.removeItem('trip-atlas:theme'); delete document.documentElement.dataset.theme; toast('시스템 테마를 따릅니다'); };
   root.querySelector('#reset-btn').onclick = async () => { if (await confirmDialog('정말 모든 여행 데이터를 삭제할까요? 백업하지 않았다면 복구할 수 없습니다.')) { resetAll(); toast('초기화했습니다'); location.hash = '#/'; } };
