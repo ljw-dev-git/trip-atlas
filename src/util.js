@@ -135,24 +135,24 @@ export function debounce(fn, ms = 250) {
 }
 
 export const PLACE_CATEGORIES = {
-  sight: { label: '관광', icon: '◎' },
-  food: { label: '식당', icon: '▲' },
-  cafe: { label: '카페', icon: '●' },
-  shop: { label: '쇼핑', icon: '■' },
-  stay: { label: '숙소', icon: '⌂' },
-  transit: { label: '교통', icon: '◇' },
-  other: { label: '기타', icon: '○' },
+  sight: { label: '관광', icon: '' },
+  food: { label: '식당', icon: '' },
+  cafe: { label: '카페', icon: '' },
+  shop: { label: '쇼핑', icon: '' },
+  stay: { label: '숙소', icon: '' },
+  transit: { label: '교통', icon: '' },
+  other: { label: '기타', icon: '' },
 };
 
 export const EXPENSE_CATEGORIES = [
-  { id: 'flight', label: '항공', icon: '✈' },
-  { id: 'stay', label: '숙박', icon: '⌂' },
-  { id: 'transport', label: '교통', icon: '◇' },
-  { id: 'food', label: '식비', icon: '▲' },
-  { id: 'cafe', label: '카페·간식', icon: '●' },
-  { id: 'sight', label: '관광·입장', icon: '◎' },
-  { id: 'shop', label: '쇼핑', icon: '■' },
-  { id: 'etc', label: '기타', icon: '○' },
+  { id: 'flight', label: '항공', icon: '' },
+  { id: 'stay', label: '숙박', icon: '' },
+  { id: 'transport', label: '교통', icon: '' },
+  { id: 'food', label: '식비', icon: '' },
+  { id: 'cafe', label: '카페·간식', icon: '' },
+  { id: 'sight', label: '관광·입장', icon: '' },
+  { id: 'shop', label: '쇼핑', icon: '' },
+  { id: 'etc', label: '기타', icon: '' },
 ];
 export const expenseCat = id => EXPENSE_CATEGORIES.find(c => c.id === id) || EXPENSE_CATEGORIES[7];
 

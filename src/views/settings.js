@@ -7,7 +7,7 @@ export function renderSettings(root) {
   const st = getState();
   const bytes = new Blob([exportJSON()]).size;
   root.innerHTML = `
-    <div class="page-head"><div><div class="eyebrow">Backup & settings</div><h1>백업·설정</h1><p>모든 데이터는 이 브라우저의 저장소(localStorage)에만 있습니다. 다른 기기에서 보려면 JSON으로 내보내 옮기세요.</p></div></div>
+    <div class="page-head"><div><h1>백업·설정</h1><p>모든 데이터는 이 브라우저의 저장소(localStorage)에만 있습니다. 다른 기기에서 보려면 JSON으로 내보내 옮기세요.</p></div></div>
     <div class="settings-grid">
       <div class="card"><div class="card-title"><h3>전체 백업</h3><span class="chip">${(bytes / 1024).toFixed(1)} KB · 여행 ${st.trips.length}개</span></div>
         <p>여행 전체를 JSON 파일 하나로 저장합니다. 휴대폰 ↔ PC 사이에 옮기거나, 깃허브 저장소에 함께 커밋해 두면 안전합니다.</p>

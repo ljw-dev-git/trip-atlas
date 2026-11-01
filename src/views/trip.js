@@ -26,8 +26,8 @@ export function renderTrip(root, trip, route, ctx) {
   }
   head.innerHTML = `
     <a class="back" href="#/">← 내 여행</a>
-    <h1><span class="emoji">${esc(trip.emoji)}</span>${esc(trip.title)} ${st === 'done' ? '<span class="stamp">Visited</span>' : st === 'ongoing' ? '<span class="stamp">On trip</span>' : ''}</h1>
-    <div class="sub"><span>${esc(trip.destination || '목적지 미정')}</span><span class="num">${esc(fmtRange(trip.startDate, trip.endDate))}</span><span class="chip ${st === 'ongoing' ? 'verm' : st === 'upcoming' ? 'sea' : ''}">${STATUS[st]}${st === 'upcoming' && dday != null ? ` · D-${dday}` : ''}</span><span class="muted small">${trip.travelers}명</span></div>
+    <h1><span class="emoji">${esc(trip.emoji)}</span>${esc(trip.title)}</h1>
+    <div class="sub"><span>${esc(trip.destination || '목적지 미정')}</span><span class="num">${esc(fmtRange(trip.startDate, trip.endDate))}</span><span class="${st === 'ongoing' ? 'chip verm' : 'muted'}">${STATUS[st]}${st === 'upcoming' && dday != null ? ` · D-${dday}` : ''}</span><span class="muted small">${trip.travelers}명</span></div>
     <div class="actions"><button class="btn sm" id="trip-edit">수정</button><button class="btn sm ghost" id="trip-dup" title="같은 일정으로 새 여행 만들기">복제</button></div>`;
   head.querySelector('#trip-edit').onclick = () => tripForm(trip);
   head.querySelector('#trip-dup').onclick = () => { const c = duplicateTrip(trip.id); toast('복제했습니다'); location.hash = `#/trip/${c.id}`; };
@@ -59,7 +59,7 @@ function renderOverview(root, trip) {
   root.innerHTML = `
     <div class="overview">
       <div class="stack">
-        ${trip.summary ? `<div class="card flat"><p style="margin:0;font-family:var(--serif);font-size:17px;line-height:1.6">${esc(trip.summary)}</p></div>` : ''}
+        ${trip.summary ? `<p class="summary-p">${esc(trip.summary)}</p>` : ''}
         <div class="card">
           <div class="card-title"><h3>일정 한눈에</h3><a class="small" href="#/trip/${esc(trip.id)}/itinerary">일정 탭 →</a></div>
           ${trip.days.length ? `<div class="day-strip">${trip.days.map((d, i) => `<a class="day-pill" href="#/trip/${esc(trip.id)}/itinerary/${d.date}"><span class="d">DAY ${i + 1} · ${fmtDate(d.date, { short: true })}</span><strong>${esc(d.title || '제목 없음')}</strong><span class="n">${d.stops.length}곳${d.stops.length ? ' · ' + d.stops.filter(s => s.placeId).map(s => (trip.places.find(p => p.id === s.placeId) || {}).name).filter(Boolean).slice(0, 3).map(esc).join(', ') : ''}</span></a>`).join('')}</div>` : '<div class="empty">출발일·귀국일을 입력하면 날짜가 생깁니다.</div>'}
@@ -73,19 +73,17 @@ function renderOverview(root, trip) {
       <div class="stack">
         <div class="card">
           <div class="card-title"><h3>예산</h3><a class="small" href="#/trip/${esc(trip.id)}/ledger">가계부 →</a></div>
-          <div class="budget-ring">
-            <div class="ring ${spent > budget && budget ? 'over' : ''}" style="--p:${Math.min(100, pct)}"><span>${budget ? pct + '%' : '—'}</span></div>
-            <dl class="kv" style="margin:0">
-              <dt>예산</dt><dd class="num">${budget ? fmtMoney(budget, trip.homeCurrency) : '미설정'}</dd>
-              <dt>실제 지출</dt><dd class="num">${fmtMoney(spent, trip.homeCurrency)}</dd>
-              <dt>예상 지출</dt><dd class="num muted">${fmtMoney(planned, trip.homeCurrency)}</dd>
-              ${budget ? `<dt>${spent > budget ? '초과' : '남은 예산'}</dt><dd class="num" style="color:${spent > budget ? 'var(--danger)' : 'var(--good)'}">${fmtMoney(Math.abs(budget - spent), trip.homeCurrency)}</dd>` : ''}
-            </dl>
+          <div class="budget-line">
+            ${budget ? `<div class="bar"><i class="${spent > budget ? 'over' : ''}" style="width:${Math.min(100, pct)}%"></i></div>` : ''}
+            <span class="muted">예산</span><span class="num">${budget ? fmtMoney(budget, trip.homeCurrency) : '미설정'}</span>
+            <span class="muted">실제 지출</span><span class="num">${fmtMoney(spent, trip.homeCurrency)}${budget ? ` <span class="muted">(${pct}%)</span>` : ''}</span>
+            <span class="muted">예상 지출</span><span class="num muted">${fmtMoney(planned, trip.homeCurrency)}</span>
+            ${budget ? `<span class="muted">${spent > budget ? '초과' : '남은 예산'}</span><span class="num" style="color:${spent > budget ? 'var(--danger)' : 'var(--ok)'}">${fmtMoney(Math.abs(budget - spent), trip.homeCurrency)}</span>` : ''}
           </div>
         </div>
         <div class="card">
           <div class="card-title"><h3>장소</h3><a class="small" href="#/trip/${esc(trip.id)}/map">지도 →</a></div>
-          <div class="row">${Object.entries(catCount).map(([k, n]) => `<span class="chip">${PLACE_CATEGORIES[k]?.icon || ''} ${PLACE_CATEGORIES[k]?.label || k} ${n}</span>`).join('') || '<span class="muted small">아직 장소가 없습니다.</span>'}</div>
+          <div class="small">${Object.entries(catCount).map(([k, n]) => `${PLACE_CATEGORIES[k]?.label || k} <span class="num">${n}</span>`).join(' · ') || '<span class="muted">아직 장소가 없습니다.</span>'}</div>
           ${trip.places.length && geo < trip.places.length ? `<p class="small" style="color:var(--danger);margin:10px 0 0">좌표 없는 장소 ${trip.places.length - geo}곳 — 지도에 표시되지 않습니다.</p>` : ''}
         </div>
         <div class="card">
@@ -96,10 +94,7 @@ function renderOverview(root, trip) {
             <dt>환율</dt><dd class="small">${trip.currency !== trip.homeCurrency ? (trip.fx[trip.currency] ? `1 ${trip.currency} = ${trip.fx[trip.currency].toFixed(4)} ${trip.homeCurrency}` : '<span style="color:var(--danger)">미설정 (가계부 탭에서 설정)</span>') : '—'}</dd>
           </dl>
         </div>
-        <div class="card flat">
-          <div class="card-title"><h3>이 여행 내보내기</h3></div>
-          <div class="row"><button class="btn sm" id="ex-trip">여행 JSON</button></div>
-        </div>
+        <div class="card flat"><div class="row"><button class="btn sm ghost" id="ex-trip">이 여행을 JSON으로 내보내기</button></div></div>
       </div>
     </div>`;
 
