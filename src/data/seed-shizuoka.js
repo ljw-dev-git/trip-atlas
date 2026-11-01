@@ -20,6 +20,8 @@ export const SEED_SHIZUOKA = {
   "currency": "KRW"
  },
  "cover": "sea",
+ "coverImage": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2a/%E4%B8%89%E4%BF%9D%E3%81%AE%E6%9D%BE%E5%8E%9F%2C_Miho_no_matsubara_-_panoramio.jpg/1280px-%E4%B8%89%E4%BF%9D%E3%81%AE%E6%9D%BE%E5%8E%9F%2C_Miho_no_matsubara_-_panoramio.jpg",
+ "coverCredit": "https://commons.wikimedia.org/wiki/File:三保の松原,_Miho_no_matsubara_-_panoramio.jpg",
  "summary": "도쿄에서 밤에 도착해 닛폰다이라 전망, 시미즈항 어시장, 미호노마츠바라를 걷고 후지산 시즈오카공항에서 돌아오는 2박 3일. 차 없이 JR·버스·도보로 이동.",
  "places": [
   {
@@ -33,7 +35,9 @@ export const SEED_SHIZUOKA = {
    "address": "",
    "memo": "거점 · 여행의 시작과 끝. 에어비앤비는 역 도보 10분 이내를 우선하고 밤 체크인·짐 보관 가능 여부를 확인하세요.",
    "note": "도쿄→시즈오카는 정차하는 히카리 또는 고다마를 확인. 24일 다음 목적지는 미정입니다.",
-   "hours": ""
+   "hours": "",
+   "photo": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5b/Shizuoka_Station_201016a.jpg/1280px-Shizuoka_Station_201016a.jpg",
+   "photoCredit": "https://commons.wikimedia.org/wiki/File:Shizuoka_Station_201016a.jpg"
   },
   {
    "id": "hotel",
@@ -46,7 +50,9 @@ export const SEED_SHIZUOKA = {
    "address": "",
    "memo": "전망·카페 · 숙박하지 않아도 이용 가능한 라운지와 후지산·스루가만 전망. 라운지에서 음료를 이용하는 코스입니다.",
    "note": "역 남쪽 셔틀 09:20→호텔 10:00 / 호텔 11:50→역 12:30. 무료·예약 불필요, 호텔 이용객 대상. 좌석·교통 사정에 따라 달라집니다.",
-   "hours": ""
+   "hours": "",
+   "photo": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/71/Nippondaira_Hotel.JPG/1280px-Nippondaira_Hotel.JPG",
+   "photoCredit": "https://commons.wikimedia.org/wiki/File:Nippondaira_Hotel.JPG"
   },
   {
    "id": "terrace",
@@ -111,7 +117,9 @@ export const SEED_SHIZUOKA = {
    "address": "",
    "memo": "산책·정원 · 도심 여행 영상에서 확인한 산책 장소입니다. 계절감을 느끼며 걷고, 시간이 맞으면 모미지야마 정원을 선택하세요.",
    "note": "정원 09:00–16:30, 최종 입장 16:00. 월요일 휴원이나 11/23은 공휴일 영업 대상. 단풍 절정은 미확정입니다.",
-   "hours": ""
+   "hours": "",
+   "photo": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5b/Sunpu_Castle_Park_201015g.jpg/1280px-Sunpu_Castle_Park_201015g.jpg",
+   "photoCredit": "https://commons.wikimedia.org/wiki/File:Sunpu_Castle_Park_201015g.jpg"
   },
   {
    "id": "prefecture",
@@ -163,7 +171,9 @@ export const SEED_SHIZUOKA = {
    "address": "",
    "memo": "항구·어시장 · 바다와 시장 분위기를 함께 보는 반나절 대안. 점포를 훑고 아래 돈베에 등에서 일찍 점심을 먹는 구성을 추천합니다.",
    "note": "마구로관 식당은 점포별 영업시간이 다릅니다. 이치바관의 09:30 개관과 식당 개점을 혼동하지 마세요.",
-   "hours": ""
+   "hours": "",
+   "photo": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/44/KASHI_NO_ICHI_maguro_kan_in_shimizu_ward.jpg/1280px-KASHI_NO_ICHI_maguro_kan_in_shimizu_ward.jpg",
+   "photoCredit": "https://commons.wikimedia.org/wiki/File:KASHI_NO_ICHI_maguro_kan_in_shimizu_ward.jpg"
   },
   {
    "id": "donbei",
@@ -189,7 +199,9 @@ export const SEED_SHIZUOKA = {
    "address": "",
    "memo": "해안 산책 대안 · 24일 시미즈항 점심 뒤 추가하는 미호 해안·소나무길. 시즈오카공항 19시 전후 예상편에 맞춰13시전후귀환을시작합니다.",
    "note": "평일은 삼보노마츠바라입구 정류장에서 도보약15분.13시전후출발·14:45시즈오카역복귀목표,15:35공항버스로16:26공항도착계획입니다.",
-   "hours": ""
+   "hours": "",
+   "photo": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2a/%E4%B8%89%E4%BF%9D%E3%81%AE%E6%9D%BE%E5%8E%9F%2C_Miho_no_matsubara_-_panoramio.jpg/1280px-%E4%B8%89%E4%BF%9D%E3%81%AE%E6%9D%BE%E5%8E%9F%2C_Miho_no_matsubara_-_panoramio.jpg",
+   "photoCredit": "https://commons.wikimedia.org/wiki/File:\u4e09\u4fdd\u306e\u677e\u539f,_Miho_no_matsubara_-_panoramio.jpg"
   },
   {
    "id": "bridge",
@@ -215,7 +227,9 @@ export const SEED_SHIZUOKA = {
    "address": "",
    "memo": "이번 기본 일정 제외 · 후지노미야의 대표 폭포. 23일 타누키호·폭포 코스에서 방문하며, 니혼다이라호텔 코스에서는 외곽 선택지입니다.",
    "note": "자연 코스에서는 11:40 도착 후 오토도메폭포와 점심을 함께 고려합니다. 13:25까지 白糸の滝 버스 정류장에 복귀해 13:40→14:10 후지노미야역 편을 탑니다. 정류장 이름과 방향을 현장에서 확인하세요.",
-   "hours": ""
+   "hours": "",
+   "photo": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/87/Shiraito_Falls_%2834257542610%29.jpg/1280px-Shiraito_Falls_%2834257542610%29.jpg",
+   "photoCredit": "https://commons.wikimedia.org/wiki/File:Shiraito_Falls_(34257542610).jpg"
   },
   {
    "id": "hug",
@@ -293,7 +307,9 @@ export const SEED_SHIZUOKA = {
    "address": "",
    "memo": "JR·버스 환승 · 시즈오카에서 후지역을 거쳐 오는 JR 미노부선 환승 거점. 자연 코스의 09:20 버스를 타고 14:10에 다시 돌아오는 곳입니다.",
    "note": "09:20 출발편은 북쪽 버스터미널 2번 승차장 기준. 열차는 확정편이 아니라 목표 시각이므로 후지역 환승과 귀환편을 별도로 확인하세요.",
-   "hours": ""
+   "hours": "",
+   "photo": "https://upload.wikimedia.org/wikipedia/ja/thumb/f/fa/Fujinomiya_Station_North_Entrance_1.JPG/1280px-Fujinomiya_Station_North_Entrance_1.JPG",
+   "photoCredit": "https://ja.wikipedia.org/wiki/File:Fujinomiya_Station_North_Entrance_1.JPG"
   },
   {
    "id": "tanuki",
@@ -319,7 +335,9 @@ export const SEED_SHIZUOKA = {
    "address": "",
    "memo": "신사·후지노미야 시내 · 폭포에서 돌아온 뒤 여유가 있으면 걷는 후지노미야 시내 산책 장소. 静岡浅間神社와 다른 신사입니다.",
    "note": "후지노미야역에서 도보 약10분. 14:25–15:10을 목표로 둘러본 뒤 역으로 돌아가세요. 점심이나 휴식이 길어지면 생략할 수 있는 선택 정거장입니다.",
-   "hours": ""
+   "hours": "",
+   "photo": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/24/Fujinomiya_Hongu_Sengen_Taisha_Honden.jpg/1280px-Fujinomiya_Hongu_Sengen_Taisha_Honden.jpg",
+   "photoCredit": "https://commons.wikimedia.org/wiki/File:Fujinomiya_Hongu_Sengen_Taisha_Honden.jpg"
   },
   {
    "id": "airport",
@@ -332,7 +350,9 @@ export const SEED_SHIZUOKA = {
    "address": "",
    "memo": "출국·공항버스 · 11/24 16–17시 도착을 목표로 하는 출국 공항. 항공편은 19시 전후 예상이며 편명·정확한 출발 시각은 아직 미정입니다.",
    "note": "시즈오카역 북쪽 14번에서 15:35 공항버스→16:26 도착 예정. 성인 1,200엔, 예약 없이 좌석 정원제입니다. 도로 지연이나 만석을 고려해 15:20부터 대기합니다.",
-   "hours": ""
+   "hours": "",
+   "photo": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f7/Fujisan-Shizuoka_airport%2CMakinohara-city%2CJapan.jpg/1280px-Fujisan-Shizuoka_airport%2CMakinohara-city%2CJapan.jpg",
+   "photoCredit": "https://commons.wikimedia.org/wiki/File:Fujisan-Shizuoka_airport,Makinohara-city,Japan.jpg"
   },
   {
    "id": "jp-bento",
@@ -605,7 +625,9 @@ export const SEED_SHIZUOKA = {
    "address": "静岡県富士宮市宮町4-23 お宮横丁内（浅間大社側入口）",
    "memo": "역14:10도착후이동하면14:20전후.식사20–30분이면신사14:25목표를조정해야함.신사관람뒤15:10포장은가능성이있으나15:20역도착을보장할수없음.",
    "note": "",
-   "hours": "10:00–17:00, L.O16:30 / 없음"
+   "hours": "10:00–17:00, L.O16:30 / 없음",
+   "photo": "https://upload.wikimedia.org/wikipedia/commons/f/fc/Fujinomiya-yakisoba.jpg",
+   "photoCredit": "https://commons.wikimedia.org/wiki/File:Fujinomiya-yakisoba.jpg"
   },
   {
    "id": "nature-nijiya-mimi",

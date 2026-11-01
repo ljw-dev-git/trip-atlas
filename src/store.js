@@ -1,6 +1,7 @@
 // 상태 저장소: localStorage 기반. 여행 여러 개, 백업/복원(JSON), 예시 여행 불러오기.
 import { uid, todayISO, dateRange } from './util.js';
 import { SEED_SHIZUOKA } from './data/seed-shizuoka.js';
+import { refId, getImageRecords, putImageRecords } from './images.js';
 
 const KEY = 'trip-atlas:v1';
 const listeners = new Set();
@@ -27,6 +28,7 @@ function migrate(s) {
   s.version = 1;
   s.settings = Object.assign({ homeCurrency: 'KRW', theme: 'auto' }, s.settings || {});
   s.trips = (s.trips || []).map(normalizeTrip);
+  s.trips.forEach(refreshSeedPhotos);
   return s;
 }
 
@@ -34,9 +36,10 @@ export function normalizeTrip(t) {
   const trip = Object.assign({
     id: uid(), title: '새 여행', destination: '', country: '', emoji: '✈', startDate: '', endDate: '',
     travelers: 1, currency: 'KRW', homeCurrency: 'KRW', fx: {}, fxNote: '', budget: { amount: 0, currency: 'KRW' },
-    cover: 'sea', summary: '', places: [], days: [], expenses: [], journal: [], checklist: [], createdAt: todayISO(),
+    cover: 'sea', coverImage: '', coverCredit: '', summary: '', places: [], days: [], expenses: [], journal: [], checklist: [], photos: [], createdAt: todayISO(),
   }, t);
-  trip.places = (trip.places || []).map(p => Object.assign({ id: uid(), name: '', localName: '', category: 'sight', lat: null, lng: null, url: '', address: '', memo: '', note: '', hours: '' }, p));
+  trip.places = (trip.places || []).map(p => Object.assign({ id: uid(), name: '', localName: '', category: 'sight', lat: null, lng: null, url: '', address: '', memo: '', note: '', hours: '', photo: '', photoCredit: '' }, p));
+  trip.photos = (trip.photos || []).filter(ph => ph && ph.ref).map(ph => Object.assign({ id: uid(), date: '', ref: '', caption: '', created: Date.now() }, ph));
   trip.expenses = (trip.expenses || []).map(e => Object.assign({ id: uid(), date: trip.startDate, category: 'etc', amount: 0, currency: trip.currency, method: 'cash', note: '', placeId: '', planned: false }, e));
   trip.checklist = (trip.checklist || []).map(c => Object.assign({ id: uid(), text: '', done: false }, c));
   trip.journal = (trip.journal || []).map(j => Object.assign({ date: '', text: '', rating: 0, highlights: '' }, j));
@@ -46,6 +49,13 @@ export function normalizeTrip(t) {
   trip.fx = Object.assign({ [trip.homeCurrency]: 1 }, trip.fx || {});
   syncDays(trip);
   return trip;
+}
+
+// 예시 여행(시즈오카)을 사진 추가 이전에 불러온 경우, 비어 있는 사진만 채워 넣는다
+function refreshSeedPhotos(t) {
+  if (t.id !== SEED_SHIZUOKA.id) return;
+  if (!t.coverImage && SEED_SHIZUOKA.coverImage) { t.coverImage = SEED_SHIZUOKA.coverImage; t.coverCredit = SEED_SHIZUOKA.coverCredit || ''; }
+  SEED_SHIZUOKA.places.forEach(sp => { const p = t.places.find(x => x.id === sp.id); if (p && !p.photo && sp.photo) { p.photo = sp.photo; p.photoCredit = sp.photoCredit || ''; } });
 }
 
 // 날짜 범위에 맞춰 days 배열을 맞춘다 (기존 일정은 보존, 범위 밖 날짜는 끝에 보관)
@@ -127,8 +137,25 @@ export function exportJSON() {
   return JSON.stringify(state, null, 2);
 }
 
-export function importJSON(text, { merge = true } = {}) {
-  const incoming = migrate(JSON.parse(text));
+// 사용 중인 로컬 이미지 id 모음 (GC·백업용)
+export function collectImageIds(trips = state.trips) {
+  const ids = new Set();
+  const add = ref => { const id = refId(ref); if (id) ids.add(id); };
+  trips.forEach(t => { add(t.coverImage); t.places.forEach(p => add(p.photo)); t.photos.forEach(ph => add(ph.ref)); });
+  return ids;
+}
+
+// 백업 파일(JSON 문자열): 로컬 이미지 데이터를 함께 담는다. tripId를 주면 그 여행만.
+export function exportBundle(tripId) {
+  const trips = tripId ? state.trips.filter(t => t.id === tripId) : state.trips;
+  const obj = tripId ? { version: 1, trips } : Object.assign({}, state, { trips });
+  return JSON.stringify(Object.assign({}, obj, { images: getImageRecords([...collectImageIds(trips)]) }), null, 1);
+}
+
+export async function importJSON(text, { merge = true } = {}) {
+  const parsed = JSON.parse(text);
+  if (parsed && parsed.images) await putImageRecords(parsed.images);
+  const incoming = migrate(parsed);
   if (!merge) { state = incoming; persist(); return state.trips.length; }
   let n = 0;
   for (const t of incoming.trips) {
@@ -140,8 +167,9 @@ export function importJSON(text, { merge = true } = {}) {
   return n;
 }
 
-export function importTripJSON(text) {
+export async function importTripJSON(text) {
   const obj = JSON.parse(text);
+  if (obj && obj.images) await putImageRecords(obj.images);
   const t = normalizeTrip(obj.trips ? obj.trips[0] : obj);
   const i = state.trips.findIndex(x => x.id === t.id);
   if (i >= 0) state.trips[i] = t; else state.trips.unshift(t);

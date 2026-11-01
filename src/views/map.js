@@ -1,7 +1,8 @@
 // 지도: Leaflet + 장소 목록 + 구글 지도 연동
 import { updateTrip } from '../store.js';
 import { esc, fmtDate, gmapsPlaceUrl, gmapsRouteUrl, download, PLACE_CATEGORIES } from '../util.js';
-import { placeForm, stopForm } from '../forms.js';
+import { placeForm, stopForm, wikiBulkForm } from '../forms.js';
+import { imgUrl } from '../images.js';
 import { tripToKML, placesToCSV } from '../export.js';
 import { toast } from '../ui.js';
 
@@ -21,7 +22,7 @@ export function renderMap(root, trip, route) {
           <div class="ms-head">
             <div class="row between"><strong id="ms-title">장소</strong><div class="row"><button class="btn sm primary" id="add-place">+ 장소</button></div></div>
             <input class="input" id="ms-q" placeholder="장소 검색" style="min-height:34px">
-            <div class="row"><button class="btn sm ghost" id="ex-kml" title="구글 내 지도(My Maps)에 가져올 수 있는 파일">KML 내보내기</button><button class="btn sm ghost" id="ex-csv">CSV</button></div>
+            <div class="row"><button class="btn sm ghost" id="ex-kml" title="구글 내 지도(My Maps)에 가져올 수 있는 파일">KML 내보내기</button><button class="btn sm ghost" id="ex-csv">CSV</button><button class="btn sm ghost" id="wk-bulk" title="사진이 없는 장소의 대표 사진을 위키백과에서 찾습니다">사진 찾기</button></div>
           </div>
           <div class="ms-list" id="ms-list"></div>
           <div class="gm-help"><strong>구글 지도에서 전부 보려면</strong> KML을 내보낸 뒤 <a href="https://www.google.com/maps/d/" target="_blank" rel="noopener">google.com/maps/d</a> → 새 지도 → 가져오기. 구글 지도 앱의 "저장됨 › 지도"에 날짜별 레이어로 나타납니다.</div>
@@ -36,6 +37,7 @@ export function renderMap(root, trip, route) {
     root.querySelector('#ex-kml').onclick = () => { download(`${trip.title}.kml`, tripToKML(trip), 'application/vnd.google-earth.kml+xml'); toast('KML을 내려받았습니다. 구글 내 지도에서 가져오세요.'); };
     root.querySelector('#ex-csv').onclick = () => download(`${trip.title}-places.csv`, placesToCSV(trip), 'text/csv');
     root.querySelector('#me-btn').onclick = () => locateMe();
+    root.querySelector('#wk-bulk').onclick = () => wikiBulkForm(trip);
     root.querySelector('#day-seg').onclick = e => { const b = e.target.closest('button'); if (!b) return; state.filter = b.dataset.f; state.selected = null; draw(root, trip, true); };
   }
   draw(root, trip, fresh);
@@ -90,7 +92,8 @@ function draw(root, trip, fit) {
 function popupHtml(trip, p) {
   const uses = [];
   trip.days.forEach((d, di) => d.stops.forEach((s, si) => { if (s.placeId === p.id) uses.push(`D${di + 1}-${si + 1}${s.time ? ' ' + s.time : ''}`); }));
-  return `<strong>${esc(p.name)}</strong>${p.localName ? `<br><span style="color:var(--muted)">${esc(p.localName)}</span>` : ''}
+  const img = imgUrl(p.photo, 'thumb');
+  return `${img ? `<img class="pp-img" src="${esc(img)}" alt="">` : ''}<strong>${esc(p.name)}</strong>${p.localName ? `<br><span style="color:var(--muted)">${esc(p.localName)}</span>` : ''}
     ${p.memo ? `<div style="margin-top:4px">${esc(p.memo)}</div>` : ''}${p.hours ? `<div class="small" style="color:var(--muted)">⏱ ${esc(p.hours)}</div>` : ''}
     ${uses.length ? `<div class="small" style="margin-top:4px;color:var(--sea)">일정: ${uses.join(', ')}</div>` : ''}
     <div class="pp-acts"><a href="${esc(gmapsPlaceUrl(p))}" target="_blank" rel="noopener">구글 지도 ↗</a><a class="sec" href="https://www.google.com/maps/dir/?api=1&destination=${p.lat},${p.lng}&travelmode=transit" target="_blank" rel="noopener">길찾기</a><a class="sec" href="javascript:void 0" data-add="${p.id}">일정에 추가</a><a class="sec" href="javascript:void 0" data-edit="${p.id}">수정</a></div>`;
@@ -114,10 +117,11 @@ function drawList(root, trip) {
   const q = state.q;
   const rows = items.filter(x => !q || (x.p && (x.p.name + ' ' + x.p.localName + ' ' + (x.p.memo || '')).toLowerCase().includes(q)) || (x.s && (x.s.title || '').toLowerCase().includes(q))).map(x => {
     const p = x.p;
-    if (!p) return `<div class="place-row"><span class="pm cat-other">${esc(x.label)}</span><div class="pn">${esc(x.s.title || '(장소 없음)')}<small>${esc(x.s.time || '')}</small></div><div></div></div>`;
+    if (!p) return `<div class="place-row"><span class="pm cat-other">${esc(x.label)}</span><div class="pn">${esc(x.s.title || '(장소 없음)')}<small>${esc(x.s.time || '')}</small></div><span></span><div></div></div>`;
     return `<div class="place-row${state.selected === p.id ? ' active' : ''}" data-id="${p.id}">
       <span class="pm cat-${p.category}">${esc(x.label)}</span>
       <div class="pn">${esc(p.name)}<small>${esc([x.s?.time, p.localName, PLACE_CATEGORIES[p.category]?.label].filter(Boolean).join(' · '))}${p.lat == null ? ' <span class="no-geo">좌표 없음</span>' : ''}</small></div>
+      ${imgUrl(p.photo, 'thumb') ? `<img class="pt" src="${esc(imgUrl(p.photo, 'thumb'))}" alt="" loading="lazy">` : '<span></span>'}
       <div class="pa">${p.lat != null ? `<a href="${esc(gmapsPlaceUrl(p))}" target="_blank" rel="noopener" title="구글 지도">↗</a>` : ''}<button data-edit title="수정">✎</button></div>
     </div>`;
   }).join('');

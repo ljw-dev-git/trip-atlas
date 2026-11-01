@@ -1,7 +1,8 @@
-// 대시보드: 여행 목록 (표 형식)
+// 대시보드: 여행 목록 (표 형식 + 커버 사진)
 import { getState, tripStatus, toHome } from '../store.js';
 import { esc, fmtMoney, todayISO, daysBetween } from '../util.js';
 import { tripForm } from '../forms.js';
+import { imgUrl } from '../images.js';
 
 const STATUS_LABEL = { ongoing: '여행 중', upcoming: '예정', done: '다녀옴', draft: '초안' };
 
@@ -40,10 +41,13 @@ function row(t, today) {
   const stops = t.days.reduce((s, d) => s + d.stops.length, 0);
   const nights = t.startDate && t.endDate ? daysBetween(t.startDate, t.endDate) : 0;
   const dday = st === 'upcoming' ? `D-${daysBetween(today, t.startDate)}` : STATUS_LABEL[st];
+  const cover = imgUrl(t.coverImage, 'thumb');
+  const photos = t.photos.length + t.places.filter(p => p.photo).length;
   return `<a class="trip-row" href="#/trip/${esc(t.id)}">
+    <div class="tr-img">${cover ? `<img src="${esc(cover)}" alt="" loading="lazy">` : `<span>${esc(t.emoji)}</span>`}</div>
     <div class="tr-date">${t.startDate ? esc(t.startDate.replace(/-/g, '.')) : '날짜 미정'}${t.endDate && t.endDate !== t.startDate ? `<br>– ${esc(t.endDate.slice(5).replace('-', '.'))}` : ''}<small>${t.startDate ? `${nights}박 ${nights + 1}일` : ''}</small></div>
     <div><span class="tr-title">${esc(t.title)}</span><span class="st ${st}">${dday}</span><div class="tr-dest">${esc(t.destination || '목적지 미정')}${t.summary ? ' · ' + esc(t.summary.slice(0, 60)) + (t.summary.length > 60 ? '…' : '') : ''}</div></div>
-    <div class="tr-meta">장소 ${t.places.length} · 일정 ${stops}${t.travelers > 1 ? ` · ${t.travelers}명` : ''}</div>
+    <div class="tr-meta">장소 ${t.places.length} · 일정 ${stops}${photos ? ` · 사진 ${photos}` : ''}${t.travelers > 1 ? ` · ${t.travelers}명` : ''}</div>
     <div class="tr-money">${spent || budget ? fmtMoney(spent, t.homeCurrency) : '<span class="muted">지출 없음</span>'}${budget ? `<small>예산 ${fmtMoney(budget, t.homeCurrency)} · ${pct}%</small><div class="bar"><i class="${spent > budget ? 'over' : ''}" style="width:${pct}%"></i></div>` : ''}</div>
   </a>`;
 }

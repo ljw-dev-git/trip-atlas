@@ -3,7 +3,8 @@ import { updateTrip } from '../store.js';
 import { esc, fmtDate, gmapsPlaceUrl, gmapsRouteUrl, haversineKm, PLACE_CATEGORIES, TRANSPORT_MODES, debounce } from '../util.js';
 import { stopForm, placeForm } from '../forms.js';
 import { itineraryToText } from '../export.js';
-import { toast } from '../ui.js';
+import { toast, openLightbox } from '../ui.js';
+import { imgUrl } from '../images.js';
 
 export function renderItinerary(root, trip, route) {
   if (!trip.days.length) { root.innerHTML = '<div class="empty"><strong>날짜가 없습니다</strong>여행 정보에서 출발일과 귀국일을 입력하세요.</div>'; return; }
@@ -34,7 +35,8 @@ export function renderItinerary(root, trip, route) {
     block.querySelectorAll('.stop').forEach(li => {
       const id = li.dataset.id;
       const find = t => { const d = dayOf(t); return [d, d.stops.findIndex(s => s.id === id)]; };
-      li.querySelector('.body .top').onclick = e => { if (e.target.closest('.tools')) return; const d = dayOf(trip); const i = d.stops.findIndex(s => s.id === id); stopForm(trip, date, Object.assign({ __index: i }, d.stops[i])); };
+      li.querySelector('.body .top').onclick = e => { if (e.target.closest('.tools')) return;
+        if (e.target.closest('.stop-img')) { const p = placeOf(dayOf(trip).stops.find(s => s.id === id) || {}); if (p) openLightbox({ src: imgUrl(p.photo), caption: p.name, meta: p.localName || '', credit: p.photoCredit }); return; } const d = dayOf(trip); const i = d.stops.findIndex(s => s.id === id); stopForm(trip, date, Object.assign({ __index: i }, d.stops[i])); };
       li.querySelector('.st').onclick = () => updateTrip(trip.id, t => { const [d, i] = find(t); const s = d.stops[i]; s.status = s.status === 'done' ? 'plan' : 'done'; });
       li.querySelector('.sk').onclick = () => updateTrip(trip.id, t => { const [d, i] = find(t); const s = d.stops[i]; s.status = s.status === 'skip' ? 'plan' : 'skip'; });
       li.querySelector('.up').onclick = () => updateTrip(trip.id, t => { const [d, i] = find(t); if (i > 0) d.stops.splice(i - 1, 0, d.stops.splice(i, 1)[0]); });
@@ -77,6 +79,7 @@ function stopItem(trip, s, si, p) {
           ${s.memo ? `<p>${esc(s.memo)}</p>` : ''}${p && p.hours ? `<p class="small muted">⏱ ${esc(p.hours)}</p>` : ''}
           ${s.transport || (s.mode && s.mode !== 'walk') ? `<div class="tr"><span>${TRANSPORT_MODES[s.mode] || ''}</span>${s.transport && s.transport !== TRANSPORT_MODES[s.mode] ? `<span>${esc(s.transport)}</span>` : ''}</div>` : ''}
         </div>
+        ${p && imgUrl(p.photo, 'thumb') ? `<img class="stop-img" src="${esc(imgUrl(p.photo, 'thumb'))}" alt="${esc(p.name)}" loading="lazy">` : ''}
         <div class="tools">
           ${p && p.lat != null ? `<a href="${esc(gmapsPlaceUrl(p))}" target="_blank" rel="noopener" title="구글 지도에서 열기">↗</a>` : ''}
           <button class="st ${s.status === 'done' ? 'on' : ''}" title="방문 완료 표시">✓</button>

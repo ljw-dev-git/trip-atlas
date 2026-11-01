@@ -1,5 +1,6 @@
 // 앱 진입점: 라우터, 테마, 전체 렌더
-import { getState, subscribe, getTrip, importSeed } from './store.js';
+import { getState, subscribe, getTrip, importSeed, collectImageIds } from './store.js';
+import { initImages, gcImages } from './images.js';
 import { renderDashboard } from './views/dashboard.js';
 import { renderTrip } from './views/trip.js';
 import { renderSettings } from './views/settings.js';
@@ -62,6 +63,9 @@ function render() {
   renderDashboard(app);
 }
 
+// 이미지 저장소를 먼저 올린 뒤 렌더 (동기 렌더에서 이미지 URL을 바로 쓰기 위해)
+await initImages();
+
 // 첫 실행: 예시 여행(시즈오카) 자동 로드
 const st = getState();
 if (!st.settings.seeded && !st.trips.length) importSeed();
@@ -69,3 +73,6 @@ if (!st.settings.seeded && !st.trips.length) importSeed();
 window.addEventListener('hashchange', render);
 subscribe(render);
 render();
+
+// 참조가 끊긴 업로드 사진 정리
+gcImages(collectImageIds()).then(n => { if (n) console.info(`사용하지 않는 사진 ${n}장을 정리했습니다`); });

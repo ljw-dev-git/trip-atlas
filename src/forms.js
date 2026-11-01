@@ -3,8 +3,62 @@ import { esc, uid, todayISO, parseLatLng, isGoogleShortLink, CURRENCIES, PLACE_C
 import { openModal, closeModal, toast, formValues, option, confirmDialog } from './ui.js';
 import { addTrip, updateTrip, deleteTrip, syncDays } from './store.js';
 import { navigate } from './app.js';
+import { imgUrl, storeImage, wikiImage, placeQueries, tripQueries } from './images.js';
 
 const COVERS = ['sea', 'sunset', 'forest', 'night', 'sand', 'rose', 'slate'];
+
+// ----- 사진 입력 필드 (올리기 / URL / 위키백과 검색) -----
+function imageField(name, value, credit, label, { aspect = '3 / 2', hint = '' } = {}) {
+  const url = imgUrl(value, 'thumb');
+  return `<div class="field span2 imgf" data-name="${name}"><label>${label}</label>
+    <div class="imgf-box">
+      <div class="imgf-prev" style="aspect-ratio:${aspect}">${url ? `<img src="${esc(url)}" alt="">` : '<span>사진 없음</span>'}</div>
+      <div class="imgf-side">
+        <div class="row">
+          <label class="btn sm">사진 올리기<input type="file" accept="image/*" hidden></label>
+          <button type="button" class="btn sm" data-act="url">이미지 URL</button>
+          <button type="button" class="btn sm" data-act="wiki">위키백과에서 찾기</button>
+          <button type="button" class="btn sm ghost" data-act="clear">제거</button>
+        </div>
+        <div class="imgf-url" hidden><input class="input" placeholder="https://… 이미지 주소"><button type="button" class="btn sm" data-act="url-ok">적용</button></div>
+        <div class="imgf-msg small muted">${esc(hint)}</div>
+        <div class="imgf-cand" hidden></div>
+      </div>
+    </div>
+    <input type="hidden" name="${name}" value="${esc(value || '')}"><input type="hidden" name="${name}Credit" value="${esc(credit || '')}"></div>`;
+}
+
+function wireImageField(m, name, getQueries) {
+  const box = m.querySelector(`.imgf[data-name="${name}"]`); if (!box) return;
+  const val = box.querySelector(`input[name="${name}"]`), cred = box.querySelector(`input[name="${name}Credit"]`);
+  const prev = box.querySelector('.imgf-prev'), msg = box.querySelector('.imgf-msg'), cand = box.querySelector('.imgf-cand'), urlRow = box.querySelector('.imgf-url');
+  const set = (ref, credit = '') => { val.value = ref || ''; cred.value = credit; const u = imgUrl(ref, 'thumb'); prev.innerHTML = u ? `<img src="${esc(u)}" alt="">` : '<span>사진 없음</span>'; };
+  box.querySelector('input[type=file]').addEventListener('change', async e => {
+    const f = e.target.files[0]; if (!f) return;
+    msg.textContent = '사진 크기를 줄이는 중…';
+    try { set(await storeImage(f)); msg.textContent = '올렸습니다. 저장을 눌러야 반영됩니다.'; }
+    catch (err) { msg.textContent = err.message; }
+    e.target.value = '';
+  });
+  const applyUrl = () => { const u = urlRow.querySelector('input').value.trim(); if (/^https?:\/\//.test(u)) { set(u); urlRow.hidden = true; msg.textContent = ''; } else msg.textContent = 'http(s)로 시작하는 이미지 주소를 넣어 주세요.'; };
+  urlRow.querySelector('input').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); applyUrl(); } });
+  box.addEventListener('click', async e => {
+    const b = e.target.closest('[data-act]'); if (!b) return;
+    const act = b.dataset.act;
+    if (act === 'clear') { set(''); msg.textContent = ''; cand.hidden = true; }
+    else if (act === 'url') { urlRow.hidden = !urlRow.hidden; if (!urlRow.hidden) urlRow.querySelector('input').focus(); }
+    else if (act === 'url-ok') applyUrl();
+    else if (act === 'wiki') {
+      msg.textContent = '위키백과에서 찾는 중…'; cand.hidden = true; b.disabled = true;
+      const r = await wikiImage(getQueries()); b.disabled = false;
+      if (!r) { msg.textContent = '찾지 못했습니다. 이름을 바꿔 보거나 직접 올려 주세요.'; return; }
+      msg.textContent = '';
+      cand.hidden = false; cand._r = r;
+      cand.innerHTML = `<img src="${esc(r.url)}" alt=""><div><div class="small"><b>${esc(r.title)}</b> <span class="muted">· ${esc(r.lang)}.wikipedia</span></div><div class="small muted">문서의 대표 사진입니다. 다른 곳이면 사용하지 마세요.</div><div class="row" style="margin-top:6px"><button type="button" class="btn sm primary" data-act="use">이 사진 사용</button><a class="btn sm ghost" href="${esc(r.pageUrl)}" target="_blank" rel="noopener">문서 보기 ↗</a></div></div>`;
+    }
+    else if (act === 'use') { const r = cand._r; if (!r) return; set(r.url, r.credit); cand.hidden = true; msg.textContent = '위키미디어 공용 사진입니다. 출처가 함께 저장됩니다.'; }
+  });
+}
 
 export function tripForm(trip) {
   const isNew = !trip;
@@ -24,6 +78,7 @@ export function tripForm(trip) {
         <div class="field"><label>예산 통화 (기준 통화)</label><select name="homeCurrency">${Object.keys(CURRENCIES).map(c => option(c, `${c} · ${CURRENCIES[c].name}`, c === t.homeCurrency)).join('')}</select><span class="hint">가계부 합계는 이 통화로 환산해 보여줍니다.</span></div>
         <div class="field span2"><label>카드 색</label><div class="row" id="covers">${COVERS.map(c => `<button type="button" class="cover-pick cover-${c}${c === t.cover ? ' on' : ''}" data-c="${c}" title="${c}" style="width:34px;height:34px;border-radius:10px;border:2px solid ${c === t.cover ? 'var(--ink)' : 'transparent'}"></button>`).join('')}<input type="hidden" name="cover" value="${esc(t.cover)}"></div></div>
         <div class="field span2"><label>한 줄 소개</label><textarea name="summary" placeholder="이 여행은 어떤 여행인가요?">${esc(t.summary)}</textarea></div>
+        ${imageField('coverImage', t.coverImage, t.coverCredit, '커버 사진', { aspect: '16 / 6', hint: '목록과 여행 상단에 보입니다.' })}
       </div>
       <div class="form-actions">
         <div>${isNew ? '' : '<button class="btn ghost danger" type="button" id="trip-del">여행 삭제</button>'}</div>
@@ -34,11 +89,12 @@ export function tripForm(trip) {
     m.querySelectorAll('.cover-pick').forEach(x => x.style.borderColor = 'transparent');
     b.style.borderColor = 'var(--ink)'; m.querySelector('[name=cover]').value = b.dataset.c;
   });
+  wireImageField(m, 'coverImage', () => { const f = m.querySelector('#trip-form'); return tripQueries({ destination: f.destination.value, title: f.title.value }); });
   m.querySelector('#trip-form').onsubmit = e => {
     e.preventDefault();
     const v = formValues(e.target);
     if (v.endDate && v.endDate < v.startDate) { toast('귀국일이 출발일보다 빠릅니다', { err: true }); return; }
-    const data = { title: v.title.trim(), destination: v.destination.trim(), emoji: v.emoji.trim() || '✈', startDate: v.startDate, endDate: v.endDate, travelers: v.travelers || 1, currency: v.currency, homeCurrency: v.homeCurrency, budget: { amount: v.budgetAmount || 0, currency: v.homeCurrency }, cover: v.cover, summary: v.summary.trim() };
+    const data = { title: v.title.trim(), destination: v.destination.trim(), emoji: v.emoji.trim() || '✈', startDate: v.startDate, endDate: v.endDate, travelers: v.travelers || 1, currency: v.currency, homeCurrency: v.homeCurrency, budget: { amount: v.budgetAmount || 0, currency: v.homeCurrency }, cover: v.cover, coverImage: v.coverImage || '', coverCredit: v.coverImage ? (v.coverImageCredit || '') : '', summary: v.summary.trim() };
     if (isNew) { const nt = addTrip(data); closeModal(); toast('새 여행을 만들었습니다'); navigate(`#/trip/${nt.id}`); }
     else { updateTrip(trip.id, x => { Object.assign(x, data); x.fx[x.homeCurrency] = 1; }); closeModal(); toast('저장했습니다'); }
   };
@@ -49,7 +105,7 @@ export function tripForm(trip) {
 // ----- 장소 -----
 export function placeForm(trip, place, { onSave } = {}) {
   const isNew = !place;
-  const p = place || { id: uid(), name: '', localName: '', category: 'sight', lat: null, lng: null, url: '', address: '', memo: '', hours: '' };
+  const p = place || { id: uid(), name: '', localName: '', category: 'sight', lat: null, lng: null, url: '', address: '', memo: '', hours: '', photo: '', photoCredit: '' };
   const m = openModal(`
     <div class="modal-head"><div><h2>${isNew ? '장소 추가' : '장소 수정'}</h2><p>구글 지도 링크를 붙여넣으면 좌표를 자동으로 읽습니다. 좌표가 있어야 지도에 표시됩니다.</p></div></div>
     <form id="place-form">
@@ -64,6 +120,7 @@ export function placeForm(trip, place, { onSave } = {}) {
         <div class="field span2"><label>주소</label><input name="address" value="${esc(p.address)}"></div>
         <div class="field"><label>영업시간·휴무</label><input name="hours" value="${esc(p.hours)}"></div>
         <div class="field"><label>메모</label><input name="memo" value="${esc(p.memo)}" placeholder="왜 가고 싶은지, 주의할 점"></div>
+        ${imageField('photo', p.photo, p.photoCredit, '사진', { hint: '일정·지도 목록에 작은 사진으로 보입니다.' })}
       </div>
       <div class="form-actions">
         <div>${isNew ? '' : '<button class="btn ghost danger" type="button" id="place-del">삭제</button>'}</div>
@@ -71,6 +128,7 @@ export function placeForm(trip, place, { onSave } = {}) {
       </div>
     </form>`);
   const f = m.querySelector('#place-form');
+  wireImageField(m, 'photo', () => placeQueries({ localName: f.localName.value, name: f.name.value }));
   const urlInput = f.url, hint = m.querySelector('#url-hint');
   const tryParse = () => {
     const v = urlInput.value.trim();
@@ -99,7 +157,7 @@ export function placeForm(trip, place, { onSave } = {}) {
   f.onsubmit = e => {
     e.preventDefault();
     const v = formValues(f);
-    const data = { name: v.name.trim(), localName: v.localName.trim(), category: v.category, lat: v.lat, lng: v.lng, url: v.url.trim(), address: v.address.trim(), memo: v.memo.trim(), hours: v.hours.trim() };
+    const data = { name: v.name.trim(), localName: v.localName.trim(), category: v.category, lat: v.lat, lng: v.lng, url: v.url.trim(), address: v.address.trim(), memo: v.memo.trim(), hours: v.hours.trim(), photo: v.photo || '', photoCredit: v.photo ? (v.photoCredit || '') : '' };
     if ((data.lat == null) !== (data.lng == null)) { toast('위도와 경도를 모두 입력하세요', { err: true }); return; }
     let saved;
     updateTrip(trip.id, t => {
@@ -204,4 +262,47 @@ export function expenseForm(trip, expense, preset = {}) {
   };
   const del = m.querySelector('#exp-del');
   if (del) del.onclick = () => { updateTrip(trip.id, t => { t.expenses = t.expenses.filter(x => x.id !== expense.id); }); closeModal(); toast('삭제했습니다'); };
+}
+
+
+// ----- 사진 없는 장소 일괄 위키백과 검색 -----
+export function wikiBulkForm(trip) {
+  const targets = trip.places.filter(p => !p.photo);
+  const auto = ['sight', 'transit', 'stay', 'other'];
+  const m = openModal(`
+    <div class="modal-head"><div><h2>위키백과에서 장소 사진 찾기</h2><p>사진이 없는 장소 ${targets.length}곳의 대표 사진을 위키백과(일본어·한국어·영어 순)에서 찾습니다. 식당·카페·상점은 엉뚱한 문서가 걸리기 쉬워 기본으로 꺼 두었습니다. 결과를 눈으로 확인한 뒤 적용하세요.</p></div></div>
+    <div class="wiki-list" id="wk-list">${targets.map(p => `<label class="wiki-row" data-id="${p.id}"><input type="checkbox" ${auto.includes(p.category) ? 'checked' : ''}><span class="wk-img"></span><span class="wk-name">${esc(p.name)}<small>${esc([p.localName, PLACE_CATEGORIES[p.category]?.label].filter(Boolean).join(' · '))}</small></span><span class="wk-res small muted"></span></label>`).join('') || '<div class="empty">모든 장소에 사진이 있습니다.</div>'}</div>
+    <div class="form-actions"><div class="small muted" id="wk-msg"></div><div><button class="btn" type="button" data-close>닫기</button><button class="btn" type="button" id="wk-go" ${targets.length ? '' : 'disabled'}>검색</button><button class="btn primary" type="button" id="wk-apply" disabled>적용</button></div></div>`, { wide: true });
+  const results = new Map();
+  const msg = m.querySelector('#wk-msg'), go = m.querySelector('#wk-go'), apply = m.querySelector('#wk-apply');
+  go.onclick = async () => {
+    go.disabled = true; apply.disabled = true;
+    const rows = [...m.querySelectorAll('.wiki-row')].filter(r => r.querySelector('input').checked && !results.has(r.dataset.id));
+    let i = 0;
+    for (const row of rows) {
+      const p = targets.find(x => x.id === row.dataset.id);
+      msg.textContent = `찾는 중 ${++i} / ${rows.length}`;
+      row.querySelector('.wk-res').textContent = '…';
+      const r = await wikiImage(placeQueries(p));
+      if (r) {
+        results.set(p.id, r); row.querySelector('.wk-img').innerHTML = `<img src="${esc(r.url)}" alt="">`;
+        row.querySelector('.wk-res').innerHTML = `${esc(r.title)} <a href="${esc(r.pageUrl)}" target="_blank" rel="noopener">↗</a>${r.related ? '' : '<br><span style="color:var(--danger)">이름이 달라요 · 확인 필요</span>'}`;
+        if (!r.related) row.querySelector('input').checked = false;
+      }
+      else { row.querySelector('input').checked = false; row.querySelector('.wk-res').textContent = '문서 없음'; }
+    }
+    msg.textContent = `${results.size}곳에서 사진을 찾았습니다. 틀린 것은 체크를 풀고 적용하세요.`;
+    go.disabled = false; apply.disabled = !results.size;
+  };
+  apply.onclick = () => {
+    let n = 0;
+    updateTrip(trip.id, t => {
+      results.forEach((r, id) => {
+        const row = m.querySelector(`.wiki-row[data-id="${id}"]`); if (!row || !row.querySelector('input').checked) return;
+        const p = t.places.find(x => x.id === id); if (!p) return;
+        p.photo = r.url; p.photoCredit = r.credit; n++;
+      });
+    });
+    closeModal(); toast(`${n}곳에 사진을 넣었습니다`);
+  };
 }
