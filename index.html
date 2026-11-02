@@ -10,10 +10,12 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23172033'/%3E%3Ccircle cx='32' cy='32' r='15' fill='none' stroke='%23f4efe6' stroke-width='4'/%3E%3Cpath d='M32 17v30M17 32h30' stroke='%23e0552d' stroke-width='4'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Playfair+Display:wght@500;600;700&family=Noto+Serif+KR:wght@500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
-<link rel="stylesheet" href="styles/app.css?v=7">
+<link rel="stylesheet" href="styles/app.css?v=9">
+<link rel="stylesheet" href="styles/skins.css?v=9">
+<script>(function(){try{var d=document.documentElement,t=localStorage.getItem('trip-atlas:theme');if(t==='light'||t==='dark')d.dataset.theme=t;var s=new URLSearchParams(location.search).get('skin')||localStorage.getItem('trip-atlas:skin');if(/^(notion|journey|editorial)$/.test(s||''))d.dataset.skin=s;}catch(e){}})()</script>
 </head>
 <body>
 <header class="topbar">
@@ -24,6 +26,7 @@
   <nav class="topnav" id="topnav" aria-label="주요 메뉴"></nav>
   <div class="topbar-actions">
     <button class="icon-btn" id="theme-toggle" type="button" title="테마 전환" aria-label="테마 전환"><span class="sun">☀</span><span class="moon">☾</span></button>
+    <div class="skin-wrap"><button class="icon-btn" id="skin-btn" type="button" title="디자인 버전" aria-label="디자인 버전 선택" aria-haspopup="menu">◧</button><div class="skin-menu" id="skin-menu" role="menu" hidden></div></div>
     <a class="icon-btn" href="#/settings" title="설정·백업" aria-label="설정과 백업">⚙</a>
   </div>
 </header>

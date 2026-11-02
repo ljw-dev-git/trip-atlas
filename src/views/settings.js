@@ -3,6 +3,7 @@ import { getState, exportJSON, exportBundle, importJSON, importSeed, resetAll } 
 import { imageCount, imageBytes } from '../images.js';
 import { GMAPS_KEY, getGmapsKey } from './map.js';
 import { esc, download, todayISO } from '../util.js';
+import { SKINS, getSkin, applySkin } from '../skins.js';
 import { toast, confirmDialog } from '../ui.js';
 
 export function renderSettings(root) {
@@ -27,6 +28,10 @@ export function renderSettings(root) {
           <li>키 제한: 애플리케이션 제한 "웹사이트"에 <code>https://ljw-dev-git.github.io/*</code>, API 제한은 Maps JavaScript API만</li>
           <li>결제 계정 연결이 필요합니다(개인 사용량은 무료 한도 안). 온보딩 마법사가 반복되면 위 링크로 직접 들어가세요.</li>
         </ul>
+      </div>
+      <div class="card" style="grid-column:1/-1"><div class="card-title"><h3>디자인 버전</h3><span class="chip">${SKINS.find(s => s.id === getSkin())?.name || '괘선'}</span></div>
+        <p>같은 데이터를 네 가지 모습으로 봅니다. 상단의 ◧ 버튼에서도 바꿀 수 있고, 주소 뒤에 <code>?skin=notion</code>처럼 붙여 열어도 됩니다. 라이트·다크 모두 지원합니다.</p>
+        <div class="skin-grid" id="skin-grid">${SKINS.map(s => `<button type="button" data-skin-id="${s.id}" class="${s.id === getSkin() ? 'on' : ''}"><span class="sw" style="--a:${s.sw[0]};--b:${s.sw[1]};--c:${s.sw[2]}"></span><span><b>${s.name}</b><small>${esc(s.desc)}</small><span class="ref">참고: ${esc(s.ref)}</span></span></button>`).join('')}</div>
       </div>
       <div class="card"><div class="card-title"><h3>테마</h3></div>
         <p>오른쪽 위 ☀/☾ 버튼으로 라이트·다크를 전환합니다. 시스템 설정을 따르려면 아래를 누르세요.</p>
@@ -54,6 +59,7 @@ export function renderSettings(root) {
   root.querySelector('#gm-save').onclick = () => { const v = root.querySelector('#gm-key').value.trim(); if (v && !/^AIza[0-9A-Za-z_-]{20,}$/.test(v)) { toast('구글 API 키 형식이 아닙니다 (AIza로 시작)', { err: true }); return; } if (v) localStorage.setItem(GMAPS_KEY, v); else localStorage.removeItem(GMAPS_KEY); toast(v ? '구글 지도 키를 저장했습니다. 지도 탭에서 확인하세요.' : '키를 지웠습니다. OpenStreetMap을 사용합니다.'); renderSettings(root); };
   root.querySelector('#gm-show').onclick = () => { const i = root.querySelector('#gm-key'); i.type = i.type === 'password' ? 'text' : 'password'; };
   root.querySelector('#seed-btn').onclick = () => { const t = importSeed(); toast('예시 여행을 불러왔습니다'); location.hash = `#/trip/${t.id}`; };
+  root.querySelector('#skin-grid').onclick = e => { const b = e.target.closest('[data-skin-id]'); if (!b) return; applySkin(b.dataset.skinId); toast(`${SKINS.find(s => s.id === b.dataset.skinId).name} 버전으로 바꿨습니다`); renderSettings(root); };
   root.querySelector('#theme-auto').onclick = () => { localStorage.removeItem('trip-atlas:theme'); delete document.documentElement.dataset.theme; toast('시스템 테마를 따릅니다'); };
   root.querySelector('#reset-btn').onclick = async () => { if (await confirmDialog('정말 모든 여행 데이터를 삭제할까요? 백업하지 않았다면 복구할 수 없습니다.')) { resetAll(); toast('초기화했습니다'); location.hash = '#/'; } };
 }

@@ -53,7 +53,7 @@ function dayBlock(trip, d, i, placeOf) {
   const expenses = trip.expenses.filter(e => e.date === d.date && !e.planned).length;
   return `<section class="day-block" id="day-${d.date}" data-date="${d.date}">
     <div class="day-head">
-      <div style="flex:1;min-width:0"><div class="dh-day">DAY ${i + 1} · ${fmtDate(d.date, { long: true })}</div><h2><input class="dh-title" value="${esc(d.title)}" placeholder="이 날의 제목을 적어 두세요"></h2></div>
+      <div class="dh-main"><div class="dh-day">DAY ${i + 1} · ${fmtDate(d.date, { long: true })}</div><h2><input class="dh-title" value="${esc(d.title)}" placeholder="이 날의 제목을 적어 두세요"></h2></div>
       <div class="day-tools">
         <span class="day-sum">${d.stops.length}곳${pts.length > 1 ? ` · 직선 ${km.toFixed(1)}km` : ''}${expenses ? ` · 지출 ${expenses}건` : ''}</span>
         ${route ? `<a class="btn sm" href="${route}" target="_blank" rel="noopener" title="이날 경로를 구글 지도 길찾기로 엽니다">구글 지도 경로 ↗</a>` : ''}

@@ -5,6 +5,7 @@ import { renderDashboard } from './views/dashboard.js';
 import { renderTrip } from './views/trip.js';
 import { renderSettings } from './views/settings.js';
 import { esc } from './util.js';
+import { SKINS, getSkin, applySkin, applySkinFromURL } from './skins.js';
 
 const app = document.getElementById('app');
 const topnav = document.getElementById('topnav');
@@ -23,6 +24,19 @@ document.getElementById('theme-toggle').onclick = () => {
   localStorage.setItem(THEME_KEY, next);
   applyTheme(next);
 };
+
+// ----- 디자인 버전 -----
+applySkinFromURL();
+applySkin(getSkin(), { persist: false });
+const skinBtn = document.getElementById('skin-btn'), skinMenu = document.getElementById('skin-menu');
+function drawSkinMenu() {
+  const cur = getSkin();
+  skinMenu.innerHTML = `<div class="sm-title">디자인 버전</div>` + SKINS.map(s => `<button type="button" data-skin-id="${s.id}" class="${s.id === cur ? 'on' : ''}"><span class="sw" style="--a:${s.sw[0]};--b:${s.sw[1]};--c:${s.sw[2]}"></span><span><b>${s.name}</b><small>${esc(s.ref)}</small></span><span class="chk">${s.id === cur ? '✓' : ''}</span></button>`).join('') + `<a class="sm-more" href="#/settings">설명과 미리보기 →</a>`;
+}
+skinBtn.onclick = e => { e.stopPropagation(); if (skinMenu.hidden) drawSkinMenu(); skinMenu.hidden = !skinMenu.hidden; };
+skinMenu.onclick = e => { const b = e.target.closest('[data-skin-id]'); if (!b) return; applySkin(b.dataset.skinId); drawSkinMenu(); };
+document.addEventListener('click', e => { if (!e.target.closest('.skin-wrap')) skinMenu.hidden = true; });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') skinMenu.hidden = true; });
 
 // ----- 라우터 -----
 export function parseRoute() {

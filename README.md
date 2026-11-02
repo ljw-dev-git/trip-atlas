@@ -13,7 +13,7 @@
 | **지도** | Leaflet 지도에 번호 핀 + 일자 경로선, 일자 필터, 내 위치, 장소 검색, 장소 사진(목록·팝업), **위키백과 사진 일괄 찾기**, **구글 지도에서 열기 / 길찾기**, **KML 내보내기**(구글 내 지도에 가져오기), CSV |
 | **가계부** | 빠른 입력(금액 + 분류 칩), 상세 입력(통화·결제수단·장소·계획/실제), 예산 진행률, 분류별·일자별·결제수단별 집계, 환율 직접 입력 / 오늘 환율 가져오기, CSV |
 | **기록** | 일자별 일기 + 별점(자동 저장), **날짜별 사진 올리기**(설명·크게 보기), 방문/건너뜀 장소 요약, 여행 회고 통계(방문 수, 지출, 계획 대비, 최대 지출), 총평 |
-| **백업·설정** | JSON 내보내기 / 불러오기(병합·교체, 올린 사진 포함), 예시 여행 불러오기, 테마, 초기화 |
+| **백업·설정** | JSON 내보내기 / 불러오기(병합·교체, 올린 사진 포함), 예시 여행 불러오기, 구글 지도 API 키, **디자인 버전**, 테마, 초기화 |
 
 ### 구글 지도 연동 (지난 여행에서 아쉬웠던 부분)
 
@@ -28,6 +28,17 @@
 - 지도 탭의 **사진 찾기**는 사진이 없는 장소를 한 번에 검색합니다. 식당·카페·상점은 엉뚱한 문서가 걸리기 쉬워 기본으로 꺼져 있고, 문서 제목이 장소 이름과 다르면 "확인 필요"로 표시합니다.
 - **기록 탭**에서는 날짜별로 찍은 사진을 여러 장 올립니다. 올린 사진은 긴 변 1600px(썸네일 480px) JPEG로 줄여 브라우저 IndexedDB에 저장하고, 백업 JSON에 함께 들어갑니다.
 - 위키백과 검색은 일본어 → 영어(현지어 이름), 한국어 → 영어(한글 이름) 순으로 시도하며, 지도·국기 같은 SVG는 제외합니다.
+
+### 디자인 버전 (스킨)
+
+같은 데이터를 네 가지 모습으로 봅니다. 상단의 ◧ 버튼, 백업·설정의 "디자인 버전" 카드, 또는 주소 뒤 `?skin=…`으로 바꿉니다. 라이트·다크 모두 지원하며 `styles/skins.css` 한 파일이 `html[data-skin]`에 따라 기본 CSS를 덮어씁니다.
+
+| 버전 | `?skin=` | 참고한 것 | 특징 |
+|---|---|---|---|
+| 괘선 (기본) | `default` | — | 괘선과 여백으로만 나누는 도구형 화면 |
+| 노션 | `notion` | 노션 여행 플래너 템플릿 | 전폭 커버 + 큰 아이콘, 속성 표(📍📅🏷👥), 갤러리 뷰 카드, 💡 콜아웃, 노션 태그 색 |
+| 저니 | `journey` | Wanderlog · TREK · Airbnb | 둥근 카드와 그림자, 사진 히어로에 겹친 헤더, 알약 탭, 떠 있는 하단 탭 |
+| 에디토리얼 | `editorial` | Kinfolk · Cereal · Monocle | 세리프 제목(Playfair Display · Noto Serif KR), 이중 괘선, 목차형 목록, 드롭캡 |
 
 ## 실행
 
@@ -51,10 +62,12 @@ GitHub Pages: 저장소 Settings → Pages → Branch `main` / `(root)` 로 배�
 
 ```
 index.html            셸 (폰트·Leaflet·스타일·앱 모듈 로드)
-styles/app.css        디자인 시스템 (라이트/다크, 모바일 탭바)
+styles/app.css        기본(괘선) 디자인 (라이트/다크, 모바일 탭바)
+styles/skins.css      디자인 버전 3종(노션·저니·에디토리얼) 덮어쓰기
 src/app.js            해시 라우터, 테마, 렌더 루프
 src/store.js          상태 저장소 (localStorage, 백업, 날짜 동기화, 환산)
 src/util.js           포맷·날짜·구글 지도 URL 파싱/생성·분류 상수
+src/skins.js          디자인 버전 목록·적용(localStorage trip-atlas:skin, ?skin=)
 src/ui.js             모달·토스트·확인창·사진 크게 보기
 src/images.js         사진 저장(IndexedDB, 리사이즈)·위키백과 사진 검색
 src/forms.js          여행 / 장소 / 일정 / 지출 입력 폼
@@ -63,4 +76,4 @@ src/views/*.js        dashboard, trip(개요), itinerary, map, ledger, journal, 
 src/data/seed-shizuoka.js  예시 여행
 ```
 
-외부 의존: Leaflet 1.9.4 (unpkg), OpenStreetMap 타일, Google Fonts(JetBrains Mono), Pretendard(jsDelivr), Nominatim(장소 검색), frankfurter.app(환율), Wikipedia API · Wikimedia Commons(사진). 모두 키 없이 사용합니다.
+외부 의존: Leaflet 1.9.4 (unpkg), OpenStreetMap 타일, Google Fonts(JetBrains Mono · Plus Jakarta Sans · Playfair Display · Noto Serif KR), Pretendard(jsDelivr), Nominatim(장소 검색), frankfurter.app(환율), Wikipedia API · Wikimedia Commons(사진). 모두 키 없이 사용합니다.

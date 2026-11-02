@@ -222,6 +222,7 @@ input[type="checkbox"].chk { width: 15px; height: 15px; accent-color: var(--ink)
 .day-nav .dn-count { grid-column: 2; font-size: 11.5px; color: var(--muted); }
 .day-block { margin-bottom: 36px; scroll-margin-top: calc(var(--topbar-h) + 16px); }
 .day-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 16px; margin-bottom: 8px; padding-bottom: 6px; border-bottom: 1px solid var(--rule); }
+.day-head .dh-main { flex: 1; min-width: 0; }
 .day-head .dh-day { font-family: var(--mono); font-size: 12px; color: var(--ink-2); }
 .day-head h2 { font-size: 20px; margin-top: 2px; }
 .day-head h2 input { font: inherit; border: 0; background: transparent; width: 100%; padding: 0; color: var(--ink); }
@@ -456,7 +457,7 @@ img { max-width: 100%; }
   .stop .body .top { flex-wrap: wrap; }
   .stop .body .top > div:first-child { min-width: 55%; }
   .stop .body .top .tools { width: 100%; justify-content: flex-end; margin-left: 0; }
-  .day-head > div:first-child { flex-basis: 100%; }
+  .day-head .dh-main { flex-basis: 100%; }
   .map-layout { grid-template-columns: 1fr; height: auto; min-height: 0; }
   .map-wrap { height: 56vh; min-height: 340px; border-right: 0; border-bottom: 1px solid var(--line-2); }
   .map-side { max-height: 60vh; }
@@ -477,3 +478,24 @@ img { max-width: 100%; }
 }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
 @media print { .topbar, .tabbar, .map-toolbar, .stop .tools, .add-stop-row, .day-tools, .btn { display: none !important; } .app { padding: 0; } body { background: #fff; color: #000; } }
+
+/* 디자인 버전 선택 */
+.skin-wrap { position: relative; }
+.skin-menu { position: absolute; right: 0; top: calc(100% + 6px); z-index: 50; min-width: 240px; padding: 6px; background: var(--bg); border: 1px solid var(--line-2); border-radius: var(--r); display: flex; flex-direction: column; gap: 2px; }
+.skin-menu .sm-title { font-size: 11px; color: var(--muted); padding: 4px 8px 6px; }
+.skin-menu button { display: grid; grid-template-columns: 34px 1fr 16px; gap: 10px; align-items: center; width: 100%; text-align: left; padding: 6px 8px; border: 0; background: transparent; border-radius: var(--r); font-size: 13px; }
+.skin-menu button:hover, .skin-menu button.on { background: var(--bg-2); }
+.skin-menu button small { display: block; font-size: 11px; color: var(--muted); }
+.skin-menu .chk { color: var(--ink); font-size: 12px; }
+.skin-menu .sm-more { font-size: 11.5px; color: var(--muted); padding: 6px 8px 4px; border-top: 1px solid var(--line); margin-top: 4px; }
+.sw { display: block; width: 34px; height: 24px; border: 1px solid var(--line-2); background: var(--a); position: relative; overflow: hidden; border-radius: 2px; }
+.sw::before { content: ''; position: absolute; left: 5px; top: 5px; width: 14px; height: 3px; background: var(--b); box-shadow: 0 6px 0 var(--b), 0 12px 0 var(--b); }
+.sw::after { content: ''; position: absolute; right: 5px; top: 5px; width: 7px; height: 7px; border-radius: 50%; background: var(--c); }
+.skin-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; }
+.skin-grid button { display: grid; grid-template-columns: 44px 1fr; gap: 12px; align-items: start; text-align: left; padding: 10px; border: 1px solid var(--line-2); background: transparent; border-radius: var(--r); font-size: 13px; }
+.skin-grid button:hover { border-color: var(--ink); }
+.skin-grid button.on { border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); }
+.skin-grid button .sw { width: 44px; height: 32px; }
+.skin-grid button b { display: block; }
+.skin-grid button small { display: block; color: var(--muted); font-size: 11.5px; line-height: 1.5; margin-top: 2px; }
+.skin-grid button .ref { display: block; margin-top: 4px; font-size: 11px; color: var(--ink-2); }
