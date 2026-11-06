@@ -64,6 +64,12 @@ export function mountMap(el, draw) {
 // 구글 키를 바꾸면 다시 시도할 수 있게
 export function resetMapEngine() { gFailed = false; }
 
+// 구글 지도 스크립트가 준비되면 resolve (구글 엔진을 못 쓰면 reject)
+export function googleReady() {
+  if (mapEngineName() !== 'google') return Promise.reject(new Error('구글 지도 키가 없거나 거부되었어요'));
+  return loadGoogle(getGmapsKey());
+}
+
 /* ---------- Leaflet + OSM ---------- */
 function makeLeaflet(el) {
   if (!window.L) return makeNone(el);

@@ -468,3 +468,13 @@ form.card h2 { margin: 0; font-size: 16px; font-weight: 800; }
 .gm-style .gm-style-iw-tc::after { background: var(--surface); }
 .map-legend { display: flex; align-items: center; gap: 6px; margin: -2px 0 10px; font-size: 12px; color: var(--muted); }
 .map-legend i { width: 10px; height: 10px; border-radius: 50%; background: #5b5ceb; border: 2px solid #fff; box-shadow: 0 0 0 1px var(--line); }
+/* 구글 리뷰 탭 */
+.src-tabs { grid-template-columns: repeat(4, 1fr); }
+.src-tabs button { font-size: 13px; padding: 0 4px; gap: 4px; }
+.src-tabs .gg.on { background: #1a73e8; color: #fff; }
+.src.tb-r { background: var(--line-2); color: var(--ink-2); }
+.g-count { font-style: normal; font-weight: 800; font-size: 17px; color: #1a73e8; text-align: right; line-height: 1.1; }
+.g-count small { display: block; font-size: 10.5px; font-weight: 600; color: var(--muted); }
+.g-hint { padding: 16px; border-radius: var(--r-sm); background: var(--surface); box-shadow: var(--shadow); font-size: 14px; line-height: 1.5; display: grid; gap: 4px; }
+.g-hint .ic { width: 16px; height: 16px; color: #1a73e8; vertical-align: -3px; }
+.g-hint small { color: var(--muted); font-size: 12px; }
