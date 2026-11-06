@@ -11,8 +11,10 @@ const FOOD = ['restaurant', 'japanese_restaurant', 'ramen_restaurant', 'sushi_re
   'tonkatsu_restaurant', 'yakiniku_restaurant', 'yakitori_restaurant', 'noodle_shop', 'soup_restaurant', 'seafood_restaurant', 'barbecue_restaurant',
   'steak_house', 'hot_pot_restaurant', 'korean_restaurant', 'korean_barbecue_restaurant', 'chinese_restaurant', 'chinese_noodle_restaurant',
   'dumpling_restaurant', 'dim_sum_restaurant', 'taiwanese_restaurant', 'indian_restaurant', 'thai_restaurant', 'vietnamese_restaurant',
-  'italian_restaurant', 'pizza_restaurant', 'french_restaurant', 'western_restaurant', 'hamburger_restaurant', 'family_restaurant',
+  'italian_restaurant', 'pizza_restaurant', 'french_restaurant', 'western_restaurant', 'hamburger_restaurant',
   'fine_dining_restaurant', 'chicken_restaurant', 'asian_restaurant', 'diner', 'bistro', 'sandwich_shop', 'spanish_restaurant'];
+// '음식점'(restaurant)에 하위 유형이 포함돼 체인 패스트푸드·패밀리레스토랑이 섞이므로 따로 뺀다
+const EXCLUDE = ['fast_food_restaurant', 'family_restaurant'];
 const CAFE = ['cafe', 'coffee_shop', 'coffee_roastery', 'coffee_stand', 'bakery', 'dessert_shop', 'dessert_restaurant', 'ice_cream_shop',
   'tea_house', 'confectionery', 'donut_shop', 'chocolate_shop'];
 const TYPES = { all: [...FOOD, ...CAFE], food: FOOD, cafe: CAFE }; // 한 요청 최대 50개
@@ -36,7 +38,7 @@ export function loadGPlaces(area, kind, circle) {
     const { places } = await Place.searchNearby({
       fields: ['id', 'displayName', 'location', 'rating', 'userRatingCount', 'primaryType', 'primaryTypeDisplayName', 'googleMapsURI'],
       locationRestriction: { center: circle.center, radius: circle.radius },
-      includedPrimaryTypes: TYPES[kind] || TYPES.all, maxResultCount: 20,
+      includedPrimaryTypes: TYPES[kind] || TYPES.all, excludedPrimaryTypes: EXCLUDE, maxResultCount: 20,
       rankPreference: SearchNearbyRankPreference.POPULARITY, language: 'ko', region: 'jp',
     });
     const list = (places || []).map(pl => ({

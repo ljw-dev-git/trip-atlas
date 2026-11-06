@@ -28,8 +28,12 @@ const gStar = g => `★${g.rating != null ? g.rating.toFixed(1) : '–'} · 리�
 const G_TYPE_EMOJI = { ramen_restaurant: '🍜', sushi_restaurant: '🍣', japanese_restaurant: '🍱', barbecue_restaurant: '🥩', steak_house: '🥩', seafood_restaurant: '🐟', chinese_restaurant: '🥡', indian_restaurant: '🍛', italian_restaurant: '🍝', pizza_restaurant: '🍕', hamburger_restaurant: '🍔', korean_restaurant: '🥘', thai_restaurant: '🍜', vietnamese_restaurant: '🍜', french_restaurant: '🍳', bar: '🍶', pub: '🍶', cafe: '☕', coffee_shop: '☕', bakery: '🥐', dessert_shop: '🍰', ice_cream_shop: '🍦', tea_house: '🍵',
   japanese_izakaya_restaurant: '🍶', japanese_curry_restaurant: '🍛', tonkatsu_restaurant: '🐷', yakiniku_restaurant: '🥩', yakitori_restaurant: '🍗', noodle_shop: '🍜', chinese_noodle_restaurant: '🍜', hot_pot_restaurant: '🍲', korean_barbecue_restaurant: '🥩', dumpling_restaurant: '🥟', dim_sum_restaurant: '🥟', donut_shop: '🍩', coffee_roastery: '☕', coffee_stand: '☕', dessert_restaurant: '🍰', confectionery: '🍡', chocolate_shop: '🍫', soup_restaurant: '🍲', chicken_restaurant: '🍗' };
 const gEmoji = g => G_TYPE_EMOJI[g.type] || eatEmoji({ genre: g.typeName, kind: /cafe|coffee|bakery|dessert|tea|confection|donut|chocolate|ice_cream/.test(g.type) ? 'cafe' : 'food' });
-// 구글 장소와 같은 가게가 우리 타베로그 목록에 있으면 (80m 이내) 연결
-const tbMatch = g => EATS.find(e => haversineKm(e, g) < 0.08);
+// 구글 장소와 같은 가게가 우리 타베로그 목록에 있으면 연결: 150m 이내 + 이름이 비슷할 때만 (거리만 보면 옆 가게가 잘못 붙음)
+const bigrams = t => { const x = String(t).replace(/[\s·・()（）\-]/g, '').toLowerCase(); const out = []; for (let i = 0; i < x.length - 1; i++) out.push(x.slice(i, i + 2)); return out.length ? out : [x]; };
+const dice = (a, b) => { const A = bigrams(a), B = bigrams(b); let hit = 0; const pool = [...B]; for (const g of A) { const i = pool.indexOf(g); if (i >= 0) { hit++; pool.splice(i, 1); } } return (2 * hit) / (A.length + B.length); };
+const tbMatch = g => EATS.filter(e => haversineKm(e, g) < 0.15)
+  .map(e => ({ e, sim: Math.max(dice(g.name, e.nameKo), dice(g.name, e.nameJa)) })).filter(x => x.sim >= 0.4)
+  .sort((a, b) => b.sim - a.sim)[0]?.e;
 
 function badges(e) {
   return `<span class="src tb">${ic('star')} 食べログ ${score(e)} (${n0(e.tabelogReviews)})</span>${e.youtube ? `<span class="src yt">▶ YouTube</span>` : ''}${e.instagramTag ? `<span class="src ig">IG</span>` : ''}`;
