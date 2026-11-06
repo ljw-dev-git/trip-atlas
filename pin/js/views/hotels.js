@@ -37,7 +37,7 @@ export function renderHotel(root, id) {
   const target = w ? w.target : Math.round(lo.price * 1.08 / 1000) * 1000;
 
   root.innerHTML = `${subHeader(h.name)}
-  <div class="ht-hero" style="--h:${h.hue}"><span>${esc(h.area)}</span><b>${esc(h.name)}</b><small>${'★'.repeat(h.stars)} · 지도에서 보기는 내 주변 탭</small></div>
+  <div class="ht-hero" style="--h:${h.hue}"><span>${esc(h.area)}</span><b>${esc(h.name)}</b><small>${'★'.repeat(h.stars)}</small></div>
   <section class="card price-card">
     <div class="pc-hd">${ic('calendar')}<b>${checkIn.slice(5).replace('-', '.')} ~ ${checkOut.slice(5).replace('-', '.')} 숙박 시</b><span class="muted small">1박 당 평균 가격</span></div>
     <div class="pc-row up">${ic('up')}<span>최고가</span><strong>${won(hi.price)}/박</strong><em>${ago(hi.date)}</em></div>

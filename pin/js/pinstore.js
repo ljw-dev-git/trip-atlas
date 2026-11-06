@@ -1,4 +1,4 @@
-// pintrip 전용 상태(콘텐츠·쿠폰·가격 알림·채팅). 여행/일정/지출은 Trip Atlas 저장소(src/store.js)를 그대로 공유한다.
+// pintrip 전용 상태(콘텐츠·가격 알림·채팅). 여행/일정/지출은 Trip Atlas 저장소(src/store.js)를 그대로 공유한다.
 import { uid, todayISO } from '../../src/util.js';
 import { HOTELS, priceHistory, priceStats } from './data.js';
 
@@ -6,7 +6,6 @@ const KEY = 'pintrip:v1';
 const listeners = new Set();
 const blank = () => ({
   region: 'all', member: { name: '여행자', no: '' }, regionTipSeen: false,
-  favCoupons: [], myCoupons: [], usedCoupons: [],
   watches: [], alerts: [], flightAlerts: [],
   folders: [{ id: 'f-default', name: '저장한 핫플' }], contents: [],
   chat: [],

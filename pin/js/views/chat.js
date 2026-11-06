@@ -5,10 +5,11 @@ import { ic } from '../icons.js';
 import { pin, setPin } from '../pinstore.js';
 import { currentTrip } from '../current.js';
 import { settle } from '../money.js';
-import { FLIGHTS, AIRPORTS, pctOff, COUPONS } from '../data.js';
+import { FLIGHTS, AIRPORTS, pctOff } from '../data.js';
+import { SAMPLE_DEALS } from '../features.js';
 import { won } from '../ui.js';
 
-const SUGGEST = ['오늘 일정 알려줘', '남은 예산은?', '정산 어떻게 돼?', '환율 얼마야?', '카페 추천', '항공 특가 있어?', '쓸 수 있는 쿠폰'];
+const SUGGEST = ['오늘 일정 알려줘', '남은 예산은?', '정산 어떻게 돼?', '환율 얼마야?', '카페 추천', '맛집 추천', ...(SAMPLE_DEALS ? ['항공 특가 있어?'] : [])];
 
 export function renderChat(root) {
   const msgs = pin().chat;
@@ -30,7 +31,7 @@ export function renderChat(root) {
 function answer(q) {
   const t = currentTrip();
   const has = (...k) => k.some(x => q.includes(x));
-  if (!t && !has('항공', '특가', '쿠폰')) return '<p>아직 여행이 없어요. 일정 탭에서 여행을 먼저 만들어 주세요.</p>';
+  if (!t && !(SAMPLE_DEALS && has('항공', '특가'))) return '<p>아직 여행이 없어요. 일정 탭에서 여행을 먼저 만들어 주세요.</p>';
 
   if (has('일정', '오늘', '내일', '코스', '동선')) {
     let date = todayISO(); if (has('내일')) date = addDays(date, 1);
@@ -63,13 +64,9 @@ function answer(q) {
     const saved = pin().contents.filter(c => !cat || (cat === 'cafe' ? c.category === '카페' : cat === 'food' ? c.category === '맛집' : true)).slice(0, 3);
     return `<p>${cat ? PLACE_CATEGORIES[cat].label : '가볼 만한'} 후보예요.</p><ul>${places.map(p => `<li>${esc(p.name)}${p.memo ? ` — <span class="muted">${esc(p.memo.slice(0, 40))}</span>` : ''}</li>`).join('')}${saved.map(c => `<li>📌 ${esc(c.placeName || c.title)} <span class="muted">(저장한 핫플)</span></li>`).join('')}</ul>${places.length + saved.length ? '' : '<p class="muted">해당하는 장소가 아직 없어요.</p>'}`;
   }
-  if (has('항공', '비행기', '특가', '땡처리')) {
+  if (SAMPLE_DEALS && has('항공', '비행기', '특가', '땡처리')) {
     const top = FLIGHTS.slice().sort((a, b) => pctOff(b) - pctOff(a)).slice(0, 3);
     return `<p>할인율이 큰 항공권이에요 <span class="sample">샘플</span></p><ul>${top.map(f => `<li>${AIRPORTS[f.from]} → ${AIRPORTS[f.to]} <b>${won(f.now)}</b> (${pctOff(f)}%↓)</li>`).join('')}</ul><a class="chip" href="#/flights">급락 항공 보기</a>`;
-  }
-  if (has('쿠폰', '할인', '혜택')) {
-    const mine = pin().myCoupons.map(id => COUPONS.find(c => c.id === id)).filter(Boolean);
-    return mine.length ? `<p>받은 쿠폰 ${mine.length}장이 있어요.</p><ul>${mine.map(c => `<li>${esc(c.brand)} 최대 ${c.max}%</li>`).join('')}</ul><a class="chip" href="#/coupons">쿠폰함</a>` : '<p>아직 받은 쿠폰이 없어요.</p><a class="chip" href="#/coupons">쿠폰 둘러보기</a>';
   }
   if (has('날씨')) return '<p>실시간 날씨는 아직 지원하지 않아요. 일정의 장소를 구글 지도에서 열어 확인해 주세요.</p>';
   return `<p>이렇게 물어보세요: ${SUGGEST.slice(0, 4).map(s => `“${s}”`).join(', ')}</p>`;
