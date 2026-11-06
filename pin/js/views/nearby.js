@@ -3,7 +3,7 @@ import { haversineKm, esc, uid } from '../../../src/util.js';
 import { getTrip } from '../../../src/store.js';
 import { ic } from '../icons.js';
 import { currentTrip } from '../current.js';
-import { EATS, EATS_CHECKED, eatsNear } from '../eats.js';
+import { EATS, EATS_CHECKED, EAT_REGIONS, eatsIn, nearestRegion, areaLabel } from '../eats.js';
 import { setPin } from '../pinstore.js';
 import { sheet, closeSheet, toast } from '../ui.js';
 import { mountMap } from '../mapkit.js';
@@ -14,11 +14,12 @@ const KINDS = [['all', '전체'], ['food', '식당'], ['cafe', '카페·디저�
 const KIND_COLOR = { food: '#ef4444', cafe: '#a16207' };
 const SRC_COLOR = { youtube: '#e62117', instagram: '#d6249f' };
 let src = 'tabelog', kind = 'all', sort = 'score', me = null, map = null;
+let region = null, area = 'all'; // region null = 여행지(또는 내 위치)에서 가까운 지역
 
 const igUrl = e => `https://www.instagram.com/explore/tags/${encodeURIComponent(e.instagramTag)}/`;
 const gmUrl = e => `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${e.nameJa} ${e.address || ''}`.trim())}`;
 const ytThumb = url => { const m = url.match(/(?:v=|youtu\.be\/|shorts\/)([\w-]{11})/); return m ? `https://i.ytimg.com/vi/${m[1]}/mqdefault.jpg` : ''; };
-const fmtKm = km => km < 1 ? Math.round(km * 1000) + 'm' : km < 100 ? km.toFixed(1) + 'km' : Math.round(km).toLocaleString() + 'km';
+const fmtKm = km => km == null ? '' : km < 1 ? Math.round(km * 1000) + 'm' : km < 100 ? km.toFixed(1) + 'km' : Math.round(km).toLocaleString() + 'km';
 const score = e => (e.tabelogScore ? e.tabelogScore.toFixed(2) : '–');
 
 function badges(e) {
@@ -30,12 +31,12 @@ function row(e, km) {
   const mark = `<span class="eat-mark" style="--c:${KIND_COLOR[e.kind] || KIND_COLOR.food}">${ic(e.kind === 'cafe' ? 'coffee' : 'food')}</span>`;
   if (src === 'youtube') return `<button class="near-row eat yt-row" data-id="${e.id}">
       <span class="yt-thumb" style="background-image:url('${esc(ytThumb(e.youtube.url))}')"><i>▶</i></span>
-      <div><b>${esc(e.nameKo)}</b><p class="yt-title">${esc(e.youtube.title)}</p><small>${esc(e.youtube.channel)} · ${fmtKm(km)}</small></div></button>`;
+      <div><b>${esc(e.nameKo)}</b><p class="yt-title">${esc(e.youtube.title)}</p><small>${esc(e.youtube.channel)} · ${esc(areaLabel(e.area))}${km != null ? ' · ' + fmtKm(km) : ''}</small></div></button>`;
   if (src === 'instagram') return `<div class="near-row eat ig-row">${mark}
-      <button class="ig-main" data-id="${e.id}"><b>${esc(e.nameKo)}</b><small>${esc(e.genre)} · ${fmtKm(km)}</small><span class="ig-tag">#${esc(e.instagramTag)}</span></button>
+      <button class="ig-main" data-id="${e.id}"><b>${esc(e.nameKo)}</b><small>${esc(e.genre)} · ${esc(areaLabel(e.area))}${km != null ? ' · ' + fmtKm(km) : ''}</small><span class="ig-tag">#${esc(e.instagramTag)}</span></button>
       <a class="ig-open" href="${esc(igUrl(e))}" target="_blank" rel="noopener" aria-label="인스타그램에서 #${esc(e.instagramTag)} 보기">IG ${ic('chevron')}</a></div>`;
   return `<button class="near-row eat" data-id="${e.id}">${mark}
-      <div><b>${esc(e.nameKo)}</b><small>${esc(e.genre)} · ${fmtKm(km)} · ${esc(e.nameJa)}</small>
+      <div><b>${esc(e.nameKo)}</b><small>${esc(e.genre)} · ${esc(areaLabel(e.area))}${km != null ? ' · ' + fmtKm(km) : ''} · ${esc(e.nameJa)}</small>
       <div class="srcs"><span class="src tb">${ic('star')} ${score(e)}</span>${e.tabelogAward ? `<span class="src aw">${esc(e.tabelogAward.split(' / ').pop())}</span>` : ''}</div></div>
       <em class="tb-score">${score(e)}</em></button>`;
 }
@@ -50,22 +51,31 @@ export function renderNearby(root) {
   const trip = currentTrip();
   const places = trip ? trip.places.filter(p => p.lat != null) : [];
   const center = me || (places[0] ? { lat: places[0].lat, lng: places[0].lng } : { lat: 34.9717, lng: 138.3889 });
-  const pool = eatsNear(center);
-  const shown = pool.filter(e => (kind === 'all' || e.kind === kind) && (src === 'youtube' ? !!e.youtube : src === 'instagram' ? !!e.instagramTag : true));
-  const byScore = src === 'tabelog' && sort === 'score';
-  const list = shown.map(e => ({ e, km: haversineKm(center, e) }))
-    .sort((a, b) => byScore ? (b.e.tabelogScore || 0) - (a.e.tabelogScore || 0) : a.km - b.km);
+  const auto = nearestRegion(center);
+  const reg = EAT_REGIONS.find(r => r.id === region) || auto || EAT_REGIONS[0];
+  if (area !== 'all' && !reg.areas.some(([a]) => a === area)) area = 'all';
+  const inTrip = auto?.id === reg.id; // 여행지·내 위치가 이 지역 안이면 거리 표시
+  const pool = eatsIn(reg.id).filter(e => area === 'all' || e.area === area);
+  const match = (e, k) => (kind === 'all' || e.kind === kind) && (k === 'youtube' ? !!e.youtube : k === 'instagram' ? !!e.instagramTag : true);
+  const shown = pool.filter(e => match(e, src));
+  const byScore = src === 'tabelog' && (sort === 'score' || !inTrip);
+  const list = shown.map(e => ({ e, km: inTrip ? haversineKm(center, e) : null }))
+    .sort((a, b) => byScore ? (b.e.tabelogScore || 0) - (a.e.tabelogScore || 0) : (a.km ?? 0) - (b.km ?? 0));
+  const areaCount = a => eatsIn(reg.id).filter(e => (a === 'all' || e.area === a) && match(e, src)).length;
 
   root.innerHTML = `<div class="nearby">
     <div class="near-map" id="nmap"></div>
     <div class="near-chips">${KINDS.map(([k, l]) => `<button class="chip ${k === kind ? 'on' : ''}" data-k="${k}">${l}</button>`).join('')}</div>
     <button class="locate" id="loc" aria-label="내 위치">${ic('locate')}</button>
     <section class="near-sheet">
-      <div class="src-tabs" role="tablist">${SOURCES.map(([k, l, c]) => `<button role="tab" class="${k === src ? 'on' : ''} ${c}" data-src="${k}" aria-selected="${k === src}">${l}<small>${pool.filter(e => (kind === 'all' || e.kind === kind) && (k === 'youtube' ? !!e.youtube : k === 'instagram' ? !!e.instagramTag : true)).length}</small></button>`).join('')}</div>
-      <div class="sec-hd"><h2>${me ? '내 위치' : trip ? esc(trip.title) : '기준 위치'} 주변</h2>
-        ${src === 'tabelog' ? `<div class="seg sm"><button data-s="score" class="${sort === 'score' ? 'on' : ''}">점수순</button><button data-s="dist" class="${sort === 'dist' ? 'on' : ''}">거리순</button></div>` : '<span class="muted small">거리순</span>'}</div>
+      <div class="reg-row"><div class="seg">${EAT_REGIONS.map(r => `<button data-reg="${r.id}" class="${r.id === reg.id ? 'on' : ''}">${esc(r.label)}</button>`).join('')}</div>
+        <small class="muted">${inTrip ? (me ? '내 위치 기준' : trip ? esc(trip.title) + ' 기준' : '') : ''}</small></div>
+      <div class="area-chips">${[['all', '전체 구역'], ...reg.areas].map(([a, l]) => `<button class="chip ${a === area ? 'on' : ''}" data-area="${a}">${esc(l)} <small>${areaCount(a)}</small></button>`).join('')}</div>
+      <div class="src-tabs" role="tablist">${SOURCES.map(([k, l, c]) => `<button role="tab" class="${k === src ? 'on' : ''} ${c}" data-src="${k}" aria-selected="${k === src}">${l}<small>${pool.filter(e => match(e, k)).length}</small></button>`).join('')}</div>
+      <div class="sec-hd"><h2>${area === 'all' ? esc(reg.label) : esc(areaLabel(area))} 맛집</h2>
+        ${src === 'tabelog' && inTrip ? `<div class="seg sm"><button data-s="score" class="${sort === 'score' ? 'on' : ''}">점수순</button><button data-s="dist" class="${sort === 'dist' ? 'on' : ''}">거리순</button></div>` : `<span class="muted small">${inTrip ? '거리순' : '점수순'}</span>`}</div>
       <p class="muted small src-note">${NOTE[src]}</p>
-      ${list.map(({ e, km }) => row(e, km)).join('') || `<p class="muted pad">${pool.length ? '이 조건의 맛집이 없어요' : '이 지역은 아직 맛집 데이터가 없어요. 지금은 시즈오카(시내·시미즈·후지) 주변만 들어 있어요.'}</p>`}
+      ${list.map(({ e, km }) => row(e, km)).join('') || `<p class="muted pad">${pool.length ? '이 조건의 맛집이 없어요' : '이 지역은 아직 맛집 데이터가 없어요.'}</p>`}
     </section></div>`;
 
   if (map) { map.destroy(); map = null; }
@@ -74,9 +84,16 @@ export function renderNearby(root) {
     shown.forEach(e => m.deal([e.lat, e.lng], src === 'youtube' ? '▶' : src === 'instagram' ? 'IG' : score(e), SRC_COLOR[src] || KIND_COLOR[e.kind] || KIND_COLOR.food,
       `<b>${esc(e.nameKo)}</b><br>${esc(e.genre)} · 食べログ ${score(e)}<br><a href="#/nearby" data-eat="${e.id}">자세히 보기</a>`));
     if (me) m.dot([me.lat, me.lng], '#3b82f6', '내 위치', true);
-    m.view([center.lat, center.lng], 13);
+    if (inTrip && area === 'all') m.view([center.lat, center.lng], 13);
+    else if (shown.length) m.fit(shown.map(e => [e.lat, e.lng]));
+    else m.view([reg.center.lat, reg.center.lng], 12);
   });
 
+  // 선택한 구역 칩이 가로 스크롤 밖에 있으면 보이게
+  const ac = root.querySelector('.area-chips'), on = ac?.querySelector('.on');
+  if (ac && on) ac.scrollLeft = on.offsetLeft - (ac.clientWidth - on.offsetWidth) / 2;
+  root.querySelectorAll('[data-reg]').forEach(b => b.onclick = () => { region = b.dataset.reg; area = 'all'; renderNearby(root); });
+  root.querySelectorAll('[data-area]').forEach(b => b.onclick = () => { area = b.dataset.area; renderNearby(root); });
   root.querySelectorAll('[data-src]').forEach(b => b.onclick = () => { src = b.dataset.src; renderNearby(root); });
   root.querySelectorAll('[data-k]').forEach(b => b.onclick = () => { kind = b.dataset.k; renderNearby(root); });
   root.querySelectorAll('[data-s]').forEach(b => b.onclick = () => { sort = b.dataset.s; renderNearby(root); });
@@ -85,7 +102,7 @@ export function renderNearby(root) {
   root.onclick = ev => { const a = ev.target.closest('[data-eat]'); if (a) { ev.preventDefault(); eatSheet(EATS.find(e => e.id === a.dataset.eat)); } };
   root.querySelector('#loc').onclick = () => {
     if (!navigator.geolocation) return;
-    navigator.geolocation.getCurrentPosition(p => { me = { lat: p.coords.latitude, lng: p.coords.longitude }; renderNearby(root); }, () => toast('위치 권한이 없어 여행지 기준으로 보여드려요'), { timeout: 8000 });
+    navigator.geolocation.getCurrentPosition(p => { me = { lat: p.coords.latitude, lng: p.coords.longitude }; region = null; renderNearby(root); }, () => toast('위치 권한이 없어 여행지 기준으로 보여드려요'), { timeout: 8000 });
   };
 }
 

@@ -448,3 +448,6 @@ form.card h2 { margin: 0; font-size: 16px; font-weight: 800; }
 .ig-tag { display: inline-block; margin-top: 5px; font-size: 13px; font-weight: 700; color: #c0267f; }
 .ig-open { display: inline-flex; align-items: center; gap: 2px; padding: 7px 10px; border-radius: 10px; font-size: 12.5px; font-weight: 800; color: #fff; background: linear-gradient(120deg, #f58529, #dd2a7b 55%, #8134af); }
 .ig-open .ic { width: 14px; height: 14px; }
+.reg-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+.area-chips { position: relative; display: flex; gap: 6px; overflow-x: auto; margin: 0 -16px 12px; padding: 0 16px 2px; scrollbar-width: none; }
+.area-chips .chip { flex: none; } .area-chips .chip small { opacity: .6; font-weight: 600; margin-left: 2px; }
