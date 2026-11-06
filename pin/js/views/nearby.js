@@ -70,6 +70,7 @@ export function renderNearby(root) {
     <section class="near-sheet">
       <div class="reg-row"><div class="seg">${EAT_REGIONS.map(r => `<button data-reg="${r.id}" class="${r.id === reg.id ? 'on' : ''}">${esc(r.label)}</button>`).join('')}</div>
         <small class="muted">${inTrip ? (me ? '내 위치 기준' : trip ? esc(trip.title) + ' 기준' : '') : ''}</small></div>
+      ${places.length && inTrip ? `<p class="map-legend"><i></i> 파란 점은 ${trip ? esc(trip.title) + '에 ' : ''}넣어 둔 내 일정 장소예요</p>` : ''}
       <div class="area-chips">${[['all', '전체 구역'], ...reg.areas].map(([a, l]) => `<button class="chip ${a === area ? 'on' : ''}" data-area="${a}">${esc(l)} <small>${areaCount(a)}</small></button>`).join('')}</div>
       <div class="src-tabs" role="tablist">${SOURCES.map(([k, l, c]) => `<button role="tab" class="${k === src ? 'on' : ''} ${c}" data-src="${k}" aria-selected="${k === src}">${l}<small>${pool.filter(e => match(e, k)).length}</small></button>`).join('')}</div>
       <div class="sec-hd"><h2>${area === 'all' ? esc(reg.label) : esc(areaLabel(area))} 맛집</h2>
@@ -80,9 +81,13 @@ export function renderNearby(root) {
 
   if (map) { map.destroy(); map = null; }
   map = mountMap(root.querySelector('#nmap'), m => {
-    places.forEach(p => m.dot([p.lat, p.lng], '#5b5ceb', p.name));
-    // 핀을 누르면 지도 말풍선 대신 상세 시트를 바로 연다
-    shown.forEach(e => m.emoji([e.lat, e.lng], eatEmoji(e), SRC_COLOR[src], `${e.nameKo} · ${e.genre} · 食べログ ${score(e)}`, () => eatSheet(e)));
+    // 파란 점: 지금 여행에 넣어 둔 장소
+    places.forEach(p => m.dot([p.lat, p.lng], '#5b5ceb', p.name, false,
+      `<div class="pp-card"><span class="pp-emo pp-mine">📍</span><div><b>${esc(p.name)}</b><small>내 일정 장소${trip ? ' · ' + esc(trip.title) : ''}</small></div></div>`));
+    // 핀을 누르면 말풍선 카드, 카드의 '자세히'를 누르면 상세 시트
+    shown.forEach(e => m.emoji([e.lat, e.lng], eatEmoji(e), SRC_COLOR[src], `${e.nameKo} · ${e.genre} · 食べログ ${score(e)}`,
+      `<div class="pp-card"><span class="pp-emo">${eatEmoji(e)}</span><div><b>${esc(e.nameKo)}</b><small>${esc(e.genre)} · 食べログ ${score(e)}${e.youtube ? ' · ▶' : ''}</small></div></div>
+       <button class="pp-more" data-eat="${e.id}">자세히 보기 ›</button>`));
     if (me) m.dot([me.lat, me.lng], '#3b82f6', '내 위치', true);
     if (inTrip && area === 'all') m.view([center.lat, center.lng], 13);
     else if (shown.length) m.fit(shown.map(e => [e.lat, e.lng]));
@@ -92,6 +97,8 @@ export function renderNearby(root) {
   // 선택한 구역 칩이 가로 스크롤 밖에 있으면 보이게
   const ac = root.querySelector('.area-chips'), on = ac?.querySelector('.on');
   if (ac && on) ac.scrollLeft = on.offsetLeft - (ac.clientWidth - on.offsetWidth) / 2;
+  // 지도 말풍선의 '자세히 보기' (Leaflet·구글 말풍선 모두 root 안에 그려짐)
+  root.onclick = ev => { const a = ev.target.closest('[data-eat]'); if (a) { ev.preventDefault(); eatSheet(EATS.find(e => e.id === a.dataset.eat)); } };
   root.querySelectorAll('[data-reg]').forEach(b => b.onclick = () => { region = b.dataset.reg; area = 'all'; renderNearby(root); });
   root.querySelectorAll('[data-area]').forEach(b => b.onclick = () => { area = b.dataset.area; renderNearby(root); });
   root.querySelectorAll('[data-src]').forEach(b => b.onclick = () => { src = b.dataset.src; renderNearby(root); });

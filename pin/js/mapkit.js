@@ -45,7 +45,7 @@ export const mapEngineName = () => (getGmapsKey() && !gFailed ? 'google' : 'osm'
 
 /**
  * el에 지도를 띄우고 draw(eng)로 그린다. 구글 실패 시 같은 draw로 OSM에 다시 그린다.
- * eng: num(ll, n, title) · dot(ll, color, title, big) · deal(ll, text, color, popupHtml) · emoji(ll, emoji, ringColor, title, onClick) · line(lls) · fit(lls) · view(ll, z)
+ * eng: num(ll, n, title) · dot(ll, color, title, big, popupHtml?) · deal(ll, text, color, popupHtml) · emoji(ll, emoji, ringColor, title, popupHtml) · line(lls) · fit(lls) · view(ll, z)
  * 반환값의 destroy()로 정리.
  */
 export function mountMap(el, draw) {
@@ -71,8 +71,8 @@ function makeLeaflet(el) {
   L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap' }).addTo(map);
   return {
     num(ll, n, title) { L.marker(ll, { icon: L.divIcon({ className: 'num-pin', html: `<span>${n}</span>`, iconSize: [26, 26], iconAnchor: [13, 13] }) }).addTo(map).bindTooltip(esc(title)); },
-    dot(ll, color, title, big) { L.circleMarker(ll, { radius: big ? 8 : 6, color: '#fff', weight: big ? 3 : 2, fillColor: color, fillOpacity: 1 }).addTo(map).bindTooltip(esc(title)); },
-    emoji(ll, emo, ring, title, onClick) { L.marker(ll, { title, icon: L.divIcon({ className: 'emo-pin', html: `<span style="--c:${ring}">${emo}</span>`, iconSize: [30, 30], iconAnchor: [15, 15] }) }).addTo(map).on('click', onClick); },
+    dot(ll, color, title, big, popup) { const c = L.circleMarker(ll, { radius: big ? 8 : 6, color: '#fff', weight: big ? 3 : 2, fillColor: color, fillOpacity: 1 }).addTo(map); popup ? c.bindPopup(popup, { className: 'pp', closeButton: false, maxWidth: 260 }) : c.bindTooltip(esc(title)); },
+    emoji(ll, emo, ring, title, popup) { L.marker(ll, { title, icon: L.divIcon({ className: 'emo-pin', html: `<span style="--c:${ring}">${emo}</span>`, iconSize: [30, 30], iconAnchor: [15, 15], popupAnchor: [0, -14] }) }).addTo(map).bindPopup(popup, { className: 'pp', closeButton: false, maxWidth: 260 }); },
     deal(ll, text, color, popup) { L.marker(ll, { icon: L.divIcon({ className: 'deal-pin', html: `<span style="--c:${color}">${esc(text)}</span>`, iconSize: [44, 26], iconAnchor: [22, 26] }) }).addTo(map).bindPopup(popup); },
     line(lls) { L.polyline(lls, { color: PRI, weight: 3, dashArray: '6 6' }).addTo(map); },
     fit(lls) { if (lls.length === 1) map.setView(lls[0], 14); else map.fitBounds(lls, { padding: [28, 28] }); },
@@ -98,7 +98,8 @@ function makeGoogle(el) {
     center: { lat: 35, lng: 138.4 }, zoom: 10, disableDefaultUI: true, zoomControl: false, clickableIcons: false, gestureHandling: 'greedy',
     styles: dark ? [{ elementType: 'geometry', stylers: [{ color: '#1c1d24' }] }, { elementType: 'labels.text.fill', stylers: [{ color: '#9a9cab' }] }, { elementType: 'labels.text.stroke', stylers: [{ color: '#1c1d24' }] }, { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#2b2d38' }] }, { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#11172a' }] }] : [],
   });
-  const iw = new g.InfoWindow({ maxWidth: 240 });
+  const iw = new g.InfoWindow({ maxWidth: 260, headerDisabled: true });
+  map.addListener('click', () => iw.close());
   const items = [];
   const toLL = ll => ({ lat: ll[0], lng: ll[1] });
   const add = o => { items.push(o); return o; };
@@ -107,8 +108,9 @@ function makeGoogle(el) {
       const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="30" height="30"><circle cx="15" cy="15" r="12" fill="${PRI}" stroke="#fff" stroke-width="2.5"/><text x="15" y="19.5" text-anchor="middle" font-family="Pretendard,system-ui,sans-serif" font-size="12.5" font-weight="800" fill="#fff">${n}</text></svg>`;
       add(new g.Marker({ map, position: toLL(ll), title, icon: svgIcon(svg, 30, 30, 15, 15), zIndex: 10 }));
     },
-    dot(ll, color, title, big) {
-      add(new g.Marker({ map, position: toLL(ll), title, icon: { path: g.SymbolPath.CIRCLE, scale: big ? 8 : 6, fillColor: color, fillOpacity: 1, strokeColor: '#fff', strokeWeight: big ? 3 : 2 }, zIndex: big ? 20 : 1 }));
+    dot(ll, color, title, big, popup) {
+      const m = add(new g.Marker({ map, position: toLL(ll), title, icon: { path: g.SymbolPath.CIRCLE, scale: big ? 8 : 6, fillColor: color, fillOpacity: 1, strokeColor: '#fff', strokeWeight: big ? 3 : 2 }, zIndex: big ? 20 : 1 }));
+      if (popup) m.addListener('click', () => { iw.setContent(popup); iw.open({ map, anchor: m }); });
     },
     deal(ll, text, color, popup) {
       const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="48" height="30"><rect x="2" y="2" width="44" height="22" rx="11" fill="${color}" stroke="#fff" stroke-width="2"/><path d="M19 24 L24 29 L29 24Z" fill="${color}"/><text x="24" y="17.5" text-anchor="middle" font-family="Pretendard,system-ui,sans-serif" font-size="12" font-weight="800" fill="#fff">${esc(text)}</text></svg>`;
