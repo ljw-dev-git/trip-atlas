@@ -117,9 +117,10 @@ function makeGoogle(el) {
       const m = add(new g.Marker({ map, position: toLL(ll), icon: svgIcon(svg, 48, 30, 24, 29), zIndex: 5 }));
       m.addListener('click', () => { iw.setContent(popup); iw.open({ map, anchor: m }); });
     },
-    emoji(ll, emo, ring, title, onClick) {
+    emoji(ll, emo, ring, title, popup) {
       const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32"><circle cx="16" cy="16" r="13.5" fill="#fff" stroke="${ring}" stroke-width="2.5"/><text x="16" y="21.5" text-anchor="middle" font-size="15" font-family="Apple Color Emoji,Segoe UI Emoji,Noto Color Emoji,sans-serif">${emo}</text></svg>`;
-      add(new g.Marker({ map, position: toLL(ll), title, icon: svgIcon(svg, 30, 30, 15, 15), zIndex: 5 })).addListener('click', onClick);
+      const m = add(new g.Marker({ map, position: toLL(ll), title, icon: svgIcon(svg, 30, 30, 15, 15), zIndex: 5 }));
+      m.addListener('click', () => { iw.setContent(popup); iw.open({ map, anchor: m }); });
     },
     line(lls) {
       add(new g.Polyline({ map, path: lls.map(toLL), strokeOpacity: 0, icons: [{ icon: { path: 'M 0,-1 0,1', strokeOpacity: .9, strokeColor: PRI, scale: 3 }, offset: '0', repeat: '12px' }] }));
