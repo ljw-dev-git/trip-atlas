@@ -6,7 +6,16 @@ import { haversineKm } from '../../src/util.js';
 
 const mem = new Map(); // `${area}|${kind}` → places[]
 const inflight = new Map();
-const TYPES = { all: ['restaurant', 'cafe'], food: ['restaurant'], cafe: ['cafe', 'coffee_shop', 'dessert_shop', 'bakery'] };
+// 장소의 '대표 유형'으로만 거른다 (includedTypes로 하면 식당이 입점한 백화점·쇼핑몰·호텔까지 섞임). 패스트푸드는 제외
+const FOOD = ['restaurant', 'japanese_restaurant', 'ramen_restaurant', 'sushi_restaurant', 'japanese_izakaya_restaurant', 'japanese_curry_restaurant',
+  'tonkatsu_restaurant', 'yakiniku_restaurant', 'yakitori_restaurant', 'noodle_shop', 'soup_restaurant', 'seafood_restaurant', 'barbecue_restaurant',
+  'steak_house', 'hot_pot_restaurant', 'korean_restaurant', 'korean_barbecue_restaurant', 'chinese_restaurant', 'chinese_noodle_restaurant',
+  'dumpling_restaurant', 'dim_sum_restaurant', 'taiwanese_restaurant', 'indian_restaurant', 'thai_restaurant', 'vietnamese_restaurant',
+  'italian_restaurant', 'pizza_restaurant', 'french_restaurant', 'western_restaurant', 'hamburger_restaurant', 'family_restaurant',
+  'fine_dining_restaurant', 'chicken_restaurant', 'asian_restaurant', 'diner', 'bistro', 'sandwich_shop', 'spanish_restaurant'];
+const CAFE = ['cafe', 'coffee_shop', 'coffee_roastery', 'coffee_stand', 'bakery', 'dessert_shop', 'dessert_restaurant', 'ice_cream_shop',
+  'tea_house', 'confectionery', 'donut_shop', 'chocolate_shop'];
+const TYPES = { all: [...FOOD, ...CAFE], food: FOOD, cafe: CAFE }; // 한 요청 최대 50개
 
 export const cachedGPlaces = (area, kind) => mem.get(`${area}|${kind}`);
 
@@ -27,7 +36,7 @@ export function loadGPlaces(area, kind, circle) {
     const { places } = await Place.searchNearby({
       fields: ['id', 'displayName', 'location', 'rating', 'userRatingCount', 'primaryType', 'primaryTypeDisplayName', 'googleMapsURI'],
       locationRestriction: { center: circle.center, radius: circle.radius },
-      includedTypes: TYPES[kind] || TYPES.all, maxResultCount: 20,
+      includedPrimaryTypes: TYPES[kind] || TYPES.all, maxResultCount: 20,
       rankPreference: SearchNearbyRankPreference.POPULARITY, language: 'ko', region: 'jp',
     });
     const list = (places || []).map(pl => ({

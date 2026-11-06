@@ -25,8 +25,9 @@ const fmtKm = km => km == null ? '' : km < 1 ? Math.round(km * 1000) + 'm' : km 
 const score = e => (e.tabelogScore ? e.tabelogScore.toFixed(2) : '–');
 const n0 = n => (n ?? 0).toLocaleString('ko-KR');
 const gStar = g => `★${g.rating != null ? g.rating.toFixed(1) : '–'} · 리뷰 ${n0(g.count)}`;
-const G_TYPE_EMOJI = { ramen_restaurant: '🍜', sushi_restaurant: '🍣', japanese_restaurant: '🍱', barbecue_restaurant: '🥩', steak_house: '🥩', seafood_restaurant: '🐟', chinese_restaurant: '🥡', indian_restaurant: '🍛', italian_restaurant: '🍝', pizza_restaurant: '🍕', hamburger_restaurant: '🍔', korean_restaurant: '🥘', thai_restaurant: '🍜', vietnamese_restaurant: '🍜', french_restaurant: '🍳', bar: '🍶', pub: '🍶', cafe: '☕', coffee_shop: '☕', bakery: '🥐', dessert_shop: '🍰', ice_cream_shop: '🍦', tea_house: '🍵' };
-const gEmoji = g => G_TYPE_EMOJI[g.type] || eatEmoji({ genre: g.typeName, kind: /cafe|coffee|bakery|dessert|tea/.test(g.type) ? 'cafe' : 'food' });
+const G_TYPE_EMOJI = { ramen_restaurant: '🍜', sushi_restaurant: '🍣', japanese_restaurant: '🍱', barbecue_restaurant: '🥩', steak_house: '🥩', seafood_restaurant: '🐟', chinese_restaurant: '🥡', indian_restaurant: '🍛', italian_restaurant: '🍝', pizza_restaurant: '🍕', hamburger_restaurant: '🍔', korean_restaurant: '🥘', thai_restaurant: '🍜', vietnamese_restaurant: '🍜', french_restaurant: '🍳', bar: '🍶', pub: '🍶', cafe: '☕', coffee_shop: '☕', bakery: '🥐', dessert_shop: '🍰', ice_cream_shop: '🍦', tea_house: '🍵',
+  japanese_izakaya_restaurant: '🍶', japanese_curry_restaurant: '🍛', tonkatsu_restaurant: '🐷', yakiniku_restaurant: '🥩', yakitori_restaurant: '🍗', noodle_shop: '🍜', chinese_noodle_restaurant: '🍜', hot_pot_restaurant: '🍲', korean_barbecue_restaurant: '🥩', dumpling_restaurant: '🥟', dim_sum_restaurant: '🥟', donut_shop: '🍩', coffee_roastery: '☕', coffee_stand: '☕', dessert_restaurant: '🍰', confectionery: '🍡', chocolate_shop: '🍫', soup_restaurant: '🍲', chicken_restaurant: '🍗' };
+const gEmoji = g => G_TYPE_EMOJI[g.type] || eatEmoji({ genre: g.typeName, kind: /cafe|coffee|bakery|dessert|tea|confection|donut|chocolate|ice_cream/.test(g.type) ? 'cafe' : 'food' });
 // 구글 장소와 같은 가게가 우리 타베로그 목록에 있으면 (80m 이내) 연결
 const tbMatch = g => EATS.find(e => haversineKm(e, g) < 0.08);
 
@@ -164,7 +165,7 @@ function gSheet(g) {
     </div>
     <div class="two"><button class="btn" id="save">${ic('bookmark')} 콘텐츠에 저장</button>${trip ? `<button class="btn primary" id="plan">${ic('plus')} 일정에 추가</button>` : ''}</div>`, { title: g.name });
   const tbl = sh.querySelector('[data-eat]'); if (tbl) tbl.onclick = ev => { ev.preventDefault(); closeSheet(); eatSheet(tb); };
-  const isCafe = /cafe|coffee|bakery|dessert|tea/.test(g.type);
+  const isCafe = /cafe|coffee|bakery|dessert|tea|confection|donut|chocolate|ice_cream/.test(g.type);
   const asContent = () => ({ url: g.url, title: `${g.name} · ${g.typeName || '음식점'}`, category: isCafe ? '카페' : '맛집', placeName: g.name, lat: g.lat, lng: g.lng });
   sh.querySelector('#save').onclick = () => {
     setPin(p => p.contents.unshift(Object.assign({ id: uid(), created: Date.now(), handle: '', tags: [], folderId: p.folders[0].id, platform: 'map', note: '구글 지도 인기 맛집' }, asContent())));
