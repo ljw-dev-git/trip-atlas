@@ -81,8 +81,8 @@ export function renderNearby(root) {
   if (map) { map.destroy(); map = null; }
   map = mountMap(root.querySelector('#nmap'), m => {
     places.forEach(p => m.dot([p.lat, p.lng], '#5b5ceb', p.name));
-    shown.forEach(e => m.emoji([e.lat, e.lng], eatEmoji(e), SRC_COLOR[src], `${e.nameKo} · ${e.genre} · 食べログ ${score(e)}`,
-      `<b>${esc(e.nameKo)}</b><br>${esc(e.genre)} · 食べログ ${score(e)}<br><a href="#/nearby" data-eat="${e.id}">자세히 보기</a>`));
+    // 핀을 누르면 지도 말풍선 대신 상세 시트를 바로 연다
+    shown.forEach(e => m.emoji([e.lat, e.lng], eatEmoji(e), SRC_COLOR[src], `${e.nameKo} · ${e.genre} · 食べログ ${score(e)}`, () => eatSheet(e)));
     if (me) m.dot([me.lat, me.lng], '#3b82f6', '내 위치', true);
     if (inTrip && area === 'all') m.view([center.lat, center.lng], 13);
     else if (shown.length) m.fit(shown.map(e => [e.lat, e.lng]));
@@ -98,8 +98,6 @@ export function renderNearby(root) {
   root.querySelectorAll('[data-k]').forEach(b => b.onclick = () => { kind = b.dataset.k; renderNearby(root); });
   root.querySelectorAll('[data-s]').forEach(b => b.onclick = () => { sort = b.dataset.s; renderNearby(root); });
   root.querySelectorAll('button[data-id]').forEach(b => b.onclick = () => eatSheet(EATS.find(e => e.id === b.dataset.id)));
-  // 지도 팝업의 '자세히 보기' (Leaflet·구글 팝업 모두 문서 안에 그려짐)
-  root.onclick = ev => { const a = ev.target.closest('[data-eat]'); if (a) { ev.preventDefault(); eatSheet(EATS.find(e => e.id === a.dataset.eat)); } };
   root.querySelector('#loc').onclick = () => {
     if (!navigator.geolocation) return;
     navigator.geolocation.getCurrentPosition(p => { me = { lat: p.coords.latitude, lng: p.coords.longitude }; region = null; renderNearby(root); }, () => toast('위치 권한이 없어 여행지 기준으로 보여드려요'), { timeout: 8000 });
