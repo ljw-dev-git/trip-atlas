@@ -428,3 +428,7 @@ form.card h2 { margin: 0; font-size: 16px; font-weight: 800; }
 
 .leaflet-container { font: inherit; }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+.menu-list .mv { margin-left: auto; font-style: normal; font-weight: 500; font-size: 13px; color: var(--muted); }
+.menu-list .mv + .ic { margin-left: 2px; }
+.gm-style .gm-style-iw-c { border-radius: 12px; font-family: inherit; }
+.gm-style .gm-style-iw-d a { color: var(--pri); font-weight: 600; }

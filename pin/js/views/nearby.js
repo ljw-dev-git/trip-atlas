@@ -4,6 +4,7 @@ import { ic } from '../icons.js';
 import { currentTrip } from '../current.js';
 import { COUPONS } from '../data.js';
 import { sample, toast } from '../ui.js';
+import { mountMap } from '../mapkit.js';
 
 const KINDS = [['all', '전체'], ['food', '맛집'], ['cafe', '카페'], ['spa', '마사지·스파'], ['shop', '쇼핑']];
 let kind = 'all', me = null, map = null;
@@ -24,15 +25,13 @@ export function renderNearby(root) {
       ${list.map(({ c, km }) => `<a class="near-row" href="#/coupons"><span class="logo-mark" style="--c:${c.color}">${esc(c.mark)}</span><div><b>${esc(c.brand)}</b><small>${esc(c.cat)} · ${km < 1 ? Math.round(km * 1000) + 'm' : km < 100 ? km.toFixed(1) + 'km' : Math.round(km).toLocaleString() + 'km'}</small></div><em>최대 ${c.max}%</em></a>`).join('') || '<p class="muted pad">이 분류의 제휴처가 없어요</p>'}
     </section></div>`;
 
-  if (map) { map.remove(); map = null; }
-  if (window.L) {
-    map = L.map('nmap', { zoomControl: false });
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap' }).addTo(map);
-    places.forEach(p => L.circleMarker([p.lat, p.lng], { radius: 6, color: '#fff', weight: 2, fillColor: '#5b5ceb', fillOpacity: 1 }).addTo(map).bindTooltip(esc(p.name)));
-    partners.forEach(c => L.marker([c.lat, c.lng], { icon: L.divIcon({ className: 'deal-pin', html: `<span style="--c:${c.color}">${c.max}%</span>`, iconSize: [44, 26], iconAnchor: [22, 26] }) }).addTo(map).bindPopup(`<b>${esc(c.brand)}</b><br>${esc(c.cat)} · 최대 ${c.max}% 할인<br><a href="#/membership">멤버십 보여주기</a>`));
-    if (me) L.circleMarker([me.lat, me.lng], { radius: 8, color: '#fff', weight: 3, fillColor: '#ef4444', fillOpacity: 1 }).addTo(map).bindTooltip('내 위치');
-    map.setView([center.lat, center.lng], 13);
-  }
+  if (map) { map.destroy(); map = null; }
+  map = mountMap(root.querySelector('#nmap'), m => {
+    places.forEach(p => m.dot([p.lat, p.lng], '#5b5ceb', p.name));
+    partners.forEach(c => m.deal([c.lat, c.lng], `${c.max}%`, c.color, `<b>${esc(c.brand)}</b><br>${esc(c.cat)} · 최대 ${c.max}% 할인<br><a href="#/membership">멤버십 보여주기</a>`));
+    if (me) m.dot([me.lat, me.lng], '#ef4444', '내 위치', true);
+    m.view([center.lat, center.lng], 13);
+  });
   root.querySelectorAll('[data-k]').forEach(b => b.onclick = () => { kind = b.dataset.k; renderNearby(root); });
   root.querySelector('#loc').onclick = () => {
     if (!navigator.geolocation) return;

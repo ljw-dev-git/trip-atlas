@@ -7,6 +7,7 @@ import { pin, setPin } from '../pinstore.js';
 import { sheet, closeSheet, toast, won, avatar, subHeader, formData } from '../ui.js';
 import { members, ensureMembers, addMember, settle, legEstimate, fmtMin } from '../money.js';
 import { encodeShare, shareableTrip } from '../share.js';
+import { mountMap } from '../mapkit.js';
 
 const dayIdx = {}; // 여행별 선택된 Day
 let map = null;
@@ -84,14 +85,13 @@ export function renderPlan(root, id) {
   <button class="btn block dashed" id="add-stop">${ic('plus')} 장소 추가</button>` : ''}`;
 
   // 지도
-  if (map) { map.remove(); map = null; }
-  if (pts.length && window.L) {
-    map = L.map('pmap', { zoomControl: false, attributionControl: true });
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap' }).addTo(map);
+  if (map) { map.destroy(); map = null; }
+  if (pts.length) {
     const ll = pts.map(p => [p.lat, p.lng]);
-    stops.forEach((s, i) => { const p = P(s.placeId); if (p.lat == null) return; L.marker([p.lat, p.lng], { icon: L.divIcon({ className: 'num-pin', html: `<span>${i + 1}</span>`, iconSize: [26, 26], iconAnchor: [13, 13] }) }).addTo(map).bindTooltip(esc(p.name)); });
-    L.polyline(ll, { color: '#5b5ceb', weight: 3, dashArray: '6 6' }).addTo(map);
-    if (ll.length === 1) map.setView(ll[0], 14); else map.fitBounds(ll, { padding: [28, 28] });
+    map = mountMap(root.querySelector('#pmap'), m => {
+      stops.forEach((s, i) => { const p = P(s.placeId); if (p.lat != null) m.num([p.lat, p.lng], i + 1, p.name); });
+      m.line(ll); m.fit(ll);
+    });
   }
 
   root.querySelectorAll('#days [data-i]').forEach(b => b.onclick = () => { dayIdx[id] = +b.dataset.i; renderPlan(root, id); });

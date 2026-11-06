@@ -57,6 +57,7 @@
 - 여행·장소·일정·지출은 Trip Atlas 저장소(`trip-atlas:v1`)를 **그대로 공유**합니다. 지출에는 `payer`(결제한 사람)와 `split`(나눌 사람, 비어 있으면 전원) 필드가, 여행에는 `members`가 더해집니다.
 - pintrip 전용 상태(콘텐츠·쿠폰·가격 알림·채팅)는 `localStorage`의 `pintrip:v1`에 저장됩니다.
 - **항공·숙소·쿠폰·제휴처는 실제 판매처와 연결되지 않은 샘플 데이터**이며(`pin/js/data.js`), 화면에도 "샘플"로 표시합니다. 실제 서비스로 쓰려면 이 파일을 판매처 API 호출로 바꾸면 됩니다.
+- 배포 사이트(`ljw-dev-git.github.io`)에서는 `pin/js/mapkit.js`의 기본 키로 **구글 지도**를 보여 줍니다. 이 키는 Maps JavaScript API 전용, 이 사이트 리퍼러 전용이며 하루 지도 로드 300회(월 무료 10,000회 이내) 할당량이 걸려 있습니다. 다른 호스트에서는 OpenStreetMap이 기본이고, **멤버십 → 지도 설정**에 구글 지도 API 키를 넣으면 일정·내 주변 지도가 구글 지도로 바뀝니다. Trip Atlas와 같은 키(`trip-atlas:gmaps-key`)를 쓰므로 한쪽에서 넣으면 양쪽에 적용되고, 키가 거부되거나 로딩에 실패하면 OpenStreetMap으로 자동 대체합니다 (`pin/js/mapkit.js`).
 - 화면 캡처(390×844 @2x)는 `pin/screens/`에 있습니다.
 
 ```
