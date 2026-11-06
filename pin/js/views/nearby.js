@@ -3,7 +3,7 @@ import { haversineKm, esc, uid } from '../../../src/util.js';
 import { getTrip } from '../../../src/store.js';
 import { ic } from '../icons.js';
 import { currentTrip } from '../current.js';
-import { EATS, EATS_CHECKED, EAT_REGIONS, eatsIn, nearestRegion, areaLabel } from '../eats.js';
+import { EATS, EATS_CHECKED, EAT_REGIONS, eatsIn, nearestRegion, areaLabel, eatEmoji } from '../eats.js';
 import { setPin } from '../pinstore.js';
 import { sheet, closeSheet, toast } from '../ui.js';
 import { mountMap } from '../mapkit.js';
@@ -12,7 +12,7 @@ import { addPlaceFromContent } from './plan.js';
 const SOURCES = [['tabelog', '食べログ', 'tb'], ['youtube', 'YouTube', 'yt'], ['instagram', 'Instagram', 'ig']];
 const KINDS = [['all', '전체'], ['food', '식당'], ['cafe', '카페·디저트']];
 const KIND_COLOR = { food: '#ef4444', cafe: '#a16207' };
-const SRC_COLOR = { youtube: '#e62117', instagram: '#d6249f' };
+const SRC_COLOR = { tabelog: '#f59e0b', youtube: '#e62117', instagram: '#d6249f' };
 let src = 'tabelog', kind = 'all', sort = 'score', me = null, map = null;
 let region = null, area = 'all'; // region null = 여행지(또는 내 위치)에서 가까운 지역
 
@@ -28,7 +28,7 @@ function badges(e) {
 
 // 출처별 목록 한 줄
 function row(e, km) {
-  const mark = `<span class="eat-mark" style="--c:${KIND_COLOR[e.kind] || KIND_COLOR.food}">${ic(e.kind === 'cafe' ? 'coffee' : 'food')}</span>`;
+  const mark = `<span class="eat-mark" style="--c:${KIND_COLOR[e.kind] || KIND_COLOR.food}">${eatEmoji(e)}</span>`;
   if (src === 'youtube') return `<button class="near-row eat yt-row" data-id="${e.id}">
       <span class="yt-thumb" style="background-image:url('${esc(ytThumb(e.youtube.url))}')"><i>▶</i></span>
       <div><b>${esc(e.nameKo)}</b><p class="yt-title">${esc(e.youtube.title)}</p><small>${esc(e.youtube.channel)} · ${esc(areaLabel(e.area))}${km != null ? ' · ' + fmtKm(km) : ''}</small></div></button>`;
@@ -81,7 +81,7 @@ export function renderNearby(root) {
   if (map) { map.destroy(); map = null; }
   map = mountMap(root.querySelector('#nmap'), m => {
     places.forEach(p => m.dot([p.lat, p.lng], '#5b5ceb', p.name));
-    shown.forEach(e => m.deal([e.lat, e.lng], src === 'youtube' ? '▶' : src === 'instagram' ? 'IG' : score(e), SRC_COLOR[src] || KIND_COLOR[e.kind] || KIND_COLOR.food,
+    shown.forEach(e => m.emoji([e.lat, e.lng], eatEmoji(e), SRC_COLOR[src], `${e.nameKo} · ${e.genre} · 食べログ ${score(e)}`,
       `<b>${esc(e.nameKo)}</b><br>${esc(e.genre)} · 食べログ ${score(e)}<br><a href="#/nearby" data-eat="${e.id}">자세히 보기</a>`));
     if (me) m.dot([me.lat, me.lng], '#3b82f6', '내 위치', true);
     if (inTrip && area === 'all') m.view([center.lat, center.lng], 13);

@@ -451,3 +451,6 @@ form.card h2 { margin: 0; font-size: 16px; font-weight: 800; }
 .reg-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
 .area-chips { position: relative; display: flex; gap: 6px; overflow-x: auto; margin: 0 -16px 12px; padding: 0 16px 2px; scrollbar-width: none; }
 .area-chips .chip { flex: none; } .area-chips .chip small { opacity: .6; font-weight: 600; margin-left: 2px; }
+.leaflet-div-icon.emo-pin { background: none; border: 0; }
+.emo-pin span { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: #fff; border: 2.5px solid var(--c); box-shadow: 0 2px 5px rgba(0, 0, 0, .28); font-size: 15px; line-height: 1; }
+.eat-mark { font-size: 21px; }
